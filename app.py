@@ -37,15 +37,32 @@ TEMPLATE = """
 <label>Race:</label>
 <select name="race">
 {% for race in races %}
-	<option value="{{ race }}">{{ race }}</option>
+	<option value="{{ race }}"
+		{% if selected_race == race %}selected{% endif %}>
+		{{ race }}
+	</option>
 {% endfor %}
 </select>
 <br><br>
 
 <label>Class:</label>
-<select name="class">
+<select name="class" onchange="this.form.submit()">
 {% for c in classes %}
-	<option value="{{ c }}">{{ c }}</option>
+	<option value="{{ c }}"
+		{% if selected_class == c %}selected{% endif %}>
+		{{ c }}
+	</option>
+{% endfor %}
+</select>
+<br><br>
+
+<label>Subclass:</label>
+<select name="subclass">
+{% for c in subclasses %}
+	<option value="{{ c }}"
+		{% if selected_subclass == c %}selected{% endif %}>
+		{{ c }}
+	</option>
 {% endfor %}
 </select>
 <br><br>
@@ -53,7 +70,10 @@ TEMPLATE = """
 <label>Background:</label>
 <select name="background">
 {% for bg in backgrounds %}
-	<option value="{{ bg }}">{{ bg }}</option>
+	<option value="{{ bg }}"
+		{% if selected_background == bg %}selected{% endif %}>
+		{{ bg }}
+	</option>
 {% endfor %}
 </select>
 <br><br>
@@ -61,7 +81,10 @@ TEMPLATE = """
 <label>Alignment:</label>
 <select name="alignment">
 {% for a in alignments %}
-	<option value="{{ a }}">{{ a }}</option>
+	<option value="{{ a }}"
+		{% if selected_alignment == a %}selected{% endif %}>
+		{{ a }}
+	</option>
 {% endfor %}
 </select>
 <br><br>
@@ -91,8 +114,6 @@ TEMPLATE = """
 	<br><br>
 	<br><br>
 	
-<button type="submit" name="Create Character">Create Character</button>
-	<br><br>
 <button method="/" name="Generate Abilities">Generate Random Abilities</button>
 	<br><br>
 <button method="/" name="Save PDF">Save PDF</button>
@@ -137,6 +158,7 @@ def get_character():
 				"PlayerName": request.form["PlayerName"] or "Unknown",
 				"Race": request.form["race"],
 				"Class": request.form["class"],
+				#"Subclass": request.form["subclass"],
 				"Background": request.form["background"],
 				"Level": request.form["LVL"] or 1,
 				"Abilities": {
@@ -182,6 +204,13 @@ def home():
 	characterName = "Unknown"
 	playerName = "Unknown"
 
+	selected_race=races[0]
+	selected_class=classes[0]
+	selected_background=backgrounds[0]
+	selected_alignment=alignments[0]
+	selected_subclass=""
+	subclasses = [c["name"] for c in db["2014-subclasses"].find({"class.name": selected_class}, {"_id": 0, "name": 1})]
+
 	# Get user selection
 	if request.method == "POST":
 		abilities = {
@@ -195,10 +224,13 @@ def home():
 		lvl=request.form["LVL"] or 1
 		characterName = request.form["CharacterName"] or "Unknown"
 		playerName = request.form["PlayerName"] or "Unknown"
+		selected_class = request.form["class"]
+		subclasses = [c["name"] for c in db["2014-subclasses"].find({"class.name":selected_class}, {"_id": 0, "name": 1})]
 		if "Generate Abilities" in request.form: # Generate Random Abilities button was pressed
-			lvl=request.form["LVL"] or 1
-			characterName = request.form["CharacterName"] or "Unknown"
-			playerName = request.form["PlayerName"] or "Unknown"
+			character = get_character()
+			lvl = character["Level"]
+			characterName = character["Name"]
+			playerName = character["PlayerName"]
 			abilities = {
 				"STR": roll_ability_score(),
 				"DEX": roll_ability_score(),
@@ -206,13 +238,24 @@ def home():
 				"INT": roll_ability_score(),
 				"WIS": roll_ability_score(),
 				"CHA": roll_ability_score()
-			}
+				}
+			selected_race=character["Race"]
+			selected_class=character["Class"]
+			selected_background=character["Background"]
+			selected_alignment=character["Alignment"]
+			#subclasses = [c["name"] for c in db["2014-subclasses"].find({"class.name":selected_class}, {"_id": 0})]
+			character = json.dumps(character, indent=2)
 		if "Create Character" in request.form: # Create Character button was pressed
 			character = get_character()
 			playerName = character["PlayerName"]
 			characterName = character["Name"]
 			lvl = character["Level"]
 			abilities = character["Abilities"]
+			selected_race=character["Race"]
+			selected_class=character["Class"]
+			selected_background=character["Background"]
+			selected_alignment=character["Alignment"]
+			#subclasses = [c["name"] for c in db["2014-subclasses"].find({"class.name":selected_class}, {"_id": 0})]
 			character = json.dumps(character, indent=2)
 		if "Save PDF" in request.form: # Save PDF button was pressed
 			character = get_character()
@@ -224,8 +267,11 @@ def home():
 			writer._root_object[NameObject("/AcroForm")] = reader.trailer["/Root"]["/AcroForm"]
 			writer._root_object["/AcroForm"][NameObject("/NeedAppearances")] = BooleanObject(True)
 			
+			name_field = character["Name"]
+			if character["PlayerName"] != "Unknown" and character["PlayerName"] is not None:
+				name_field = name_field + " (" + character["PlayerName"] + ")"
 			field_data = {
-				"CharacterName_Field": character["Name"],
+				"CharacterName_Field": name_field,
 				"Race_Field": character["Race"],
 				"Class_Field": character['Class'],
 				#"Subclass_Field": character['Subclass'],
@@ -261,6 +307,11 @@ def home():
 			with open(tmp.name, "wb") as f:
 				writer.write(f)
 
+			selected_race=character["Race"]
+			selected_class=character["Class"]
+			selected_background=character["Background"]
+			selected_alignment=character["Alignment"]
+			#subclasses = [c["name"] for c in db["2014-subclasses"].find({"class.name":selected_class}, {"_id": 0})]
 			character = json.dumps(character, indent=2)
 			return send_file(tmp.name, as_attachment=True, download_name="character.pdf")
 		
@@ -271,10 +322,15 @@ def home():
 			CharacterName=characterName,
 			LVL=lvl,
 			races=races,
+			selected_race=selected_race,
 			classes=classes,
+			selected_class=selected_class,
+			subclasses=subclasses,
+			selected_subclass=selected_subclass,
 			backgrounds=backgrounds,
+			selected_background=selected_background,
 			alignments=alignments,
-			character=character,
+			selected_alignment=selected_alignment,
 			STR=abilities["STR"],
 			DEX=abilities["DEX"],
 			CON=abilities["CON"],
@@ -285,9 +341,15 @@ def home():
 	return render_template_string(
 		TEMPLATE,
 		races=races,
+		selected_race=selected_race,
 		classes=classes,
+		selected_class=selected_class,
+		subclasses=subclasses,
+		selected_subclass=selected_subclass,
 		backgrounds=backgrounds,
+		selected_background=selected_background,
 		alignments=alignments,
+		selected_alignment=selected_alignment,
 		PlayerName=playerName,
 		CharacterName=characterName,
 		LVL=lvl,
