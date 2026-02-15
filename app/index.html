@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>D&D Character Generator</title>
+</head>
+<body>
+	<h1>D&D Character Generator</h1>
+
+	<form method="post">
+		Name: <input name="name"><br>
+		<!--Age: <input name="age"><br>-->
+		Level: <input name="level"><br>
+
+		Race:
+		<select name="race">
+			{% for r in races %}
+			<option>{{ r }}</option>
+			{% endfor %}
+			<option value="Random" selected>Random</option>
+		</select><br>
+
+		Class:
+		<select name="class" id="class-dropdown"
+			{% for c in classes %}
+			<option value="{{ c }}">{{ c }}</option>
+			{% endfor %}
+			<option value="Random" selected>Random</option>
+		</select><br>
+
+		Subclass:
+		<select name="subclass" id="subclass-dropdown">
+			<option value="Random" selected>Random</option>
+		</select><br>
+
+
+		Background:
+		<select name="background">
+			{% for b in backgrounds %}
+			<option>{{ b }}</option>
+			{% endfor %}
+			<option value="Random" selected>Random</option>
+		</select><br>
+
+		Alignment:
+		<select name="alignment">
+			{% for a in alignments %}
+			<option>{{ a }}</option>
+			{% endfor %}
+			<option value="Random" selected>Random</option>
+		</select><br>
+		
+		<form method="post" action="/generate">	
+			<button type="submit">Generate</button>
+		</form>
+	</form>
+
+	{% if pdf_url %}
+	<hr>
+	<h2>📄 Character Sheet Preview</h2>
+	
+	<iframe
+	    src="{{ pdf_url }}"
+	    width="100%"
+	    height="800px"
+	    style="border: 1px solid #ccc;"
+	></iframe>
+	
+	<a href="{{ pdf_url }}" download="character.pdf">
+	    <button>Download PDF</button>
+	</a>
+	{% endif %}
+
+        {% if character %}
+        <hr>
+        <h2>{{ character.Name }}</h2>
+        <pre>{{ character }}</pre>
+        <form method="post" action="/pdf">
+                <input type="hidden" name="character" value="{{ character }}">
+                <button>Download PDF</button>
+        </form>
+        {% endif %}
+
+	<script>
+	// Parse subclasses passed from Flask
+	const subclassesData = {{ subclasses|safe }};
+	
+	// Get DOM elements
+	const classDropdown = document.getElementById('class-dropdown');
+	const subclassDropdown = document.getElementById('subclass-dropdown');
+
+	// Update subclass options whenever class changes
+	classDropdown.addEventListener('change', function() {
+	    const selectedClass = this.value;
+
+	    // Clear current subclass options
+	    subclassDropdown.innerHTML = '';
+
+	    if (subclassesData[selectedClass]) {
+	        // Add new options
+	        subclassesData[selectedClass].forEach(sub => {
+	            const opt = document.createElement('option');
+	            opt.value = sub;
+	            opt.text = sub;
+	            subclassDropdown.add(opt);
+	        });
+
+
+		//add "Random" option last
+		const randomOpt = document.createElement('option');
+		randomOpt.value = "Random";
+		randomOpt.text = "Random";
+		subclassDropdown.add(randomOpt);
+	
+	    } else {
+	        // No subclasses, add empty option
+	        const opt = document.createElement('option');
+	        opt.value = '';
+	        opt.text = '--None--';
+	        subclassDropdown.add(opt);
+	    }
+	});
+</script>
+
+
+</body>
+</html>
