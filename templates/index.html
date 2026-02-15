@@ -1,0 +1,125 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>D&D Character Generator</title>
+	<link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+	<h1>D&D 5e Character Creator</h1>
+
+	<div class="container">
+		<form method="POST">
+
+		  <label>Player Name:</label>
+		  <input type="text" id="PlayerName" name="PlayerName"value={{PlayerName}}>
+
+			<br><br>
+
+		  <label>Character Name:</label>
+		  <input type="text" id="CharacterName" name="CharacterName"value={{CharacterName}}>
+
+			<br><br>
+
+		  <label for="LVL">Level (1-12):</label>
+		  <input type="number" id="LVL" name="LVL" min="1" max="12" value={{LVL}} default=1>
+
+			<br><br>
+
+		<label>Race:</label>
+		<select name="race">
+		{% for race in races %}
+			<option value="{{ race }}"
+				{% if selected_race == race %}selected{% endif %}>
+				{{ race }}
+			</option>
+		{% endfor %}
+		</select>
+		<br><br>
+
+		<label>Class:</label>
+		<select name="class" onchange="this.form.submit()">
+		{% for c in classes %}
+			<option value="{{ c }}"
+				{% if selected_class == c %}selected{% endif %}>
+				{{ c }}
+			</option>
+		{% endfor %}
+		</select>
+		<br><br>
+
+		<label>Subclass:</label>
+		<select name="subclass">
+		{% for c in subclasses %}
+			<option value="{{ c }}"
+				{% if selected_subclass == c %}selected{% endif %}>
+				{{ c }}
+			</option>
+		{% endfor %}
+		</select>
+		<br><br>
+
+		<label>Background:</label>
+		<select name="background">
+		{% for bg in backgrounds %}
+			<option value="{{ bg }}"
+				{% if selected_background == bg %}selected{% endif %}>
+				{{ bg }}
+			</option>
+		{% endfor %}
+		</select>
+		<br><br>
+
+		<label>Alignment:</label>
+		<select name="alignment">
+		{% for a in alignments %}
+			<option value="{{ a }}"
+				{% if selected_alignment == a %}selected{% endif %}>
+				{{ a }}
+			</option>
+		{% endfor %}
+		</select>
+		<br><br>
+
+		<label for="STR">STR (3-18):</label>
+		<input type="number" id="STR" name="STR" min="3" max="18" value={{STR}}>
+
+		<label for="DEX">DEX (3-18):</label>
+		<input type="number" id="DEX" name="DEX" min="3" max="18" value={{DEX}}>
+
+			<br><br>
+
+		<label for="CON">CON (3-18):</label>
+		<input type="number" id="CON" name="CON" min="3" max="18" value={{CON}}>
+
+		<label for="INT">INT (3-18):</label>
+		<input type="number" id="INT" name="INT" min="3" max="18" value={{INT}}>
+
+			<br><br>
+
+		<label for="WIS">WIS (3-18):</label>
+		<input type="number" id="WIS" name="WIS" min="3" max="18" value={{WIS}}>
+
+		<label for="CHA">CHA (3-18):</label>
+		<input type="number" id="CHA" name="CHA" min="3" max="18" value={{CHA}}>
+
+			<br><br>
+			<br><br>
+
+		<button name="Generate Abilities">Generate Random Abilities</button>
+			<br><br>
+		<button name="Save PDF">Save PDF</button>
+			<br><br>
+		</form>
+
+		{% if character %}
+	    <div class="character-card">
+			<h2>Character Summary</h2>
+			<pre>{{ character }}</pre>
+		</div>
+		{% endif %}
+	</div>
+</body>
+</html>

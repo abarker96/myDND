@@ -51,6 +51,8 @@ VOLUME /data/db2
 WORKDIR /app
 COPY app.py /app/app.py
 COPY ./res/ /res/
+COPY ./templates /app/templates
+COPY ./static /app/static
 
 EXPOSE 27017
 EXPOSE 5000

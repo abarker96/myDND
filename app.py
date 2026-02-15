@@ -3,7 +3,7 @@
 # This project adds a character builder web interface on top of the 5E-Database
 # More changes to come
 
-from flask import Flask, render_template_string, request, send_file
+from flask import Flask, render_template_string, render_template, request, send_file
 from pymongo import MongoClient
 import json, random, tempfile
 from pypdf import PdfReader, PdfWriter
@@ -14,116 +14,132 @@ app = Flask(__name__)
 client = MongoClient("mongodb://localhost:27017")
 db = client["5e-database"]
 
-TEMPLATE = """
-<h1>D&D 5e Character Creator</h1>
+#TEMPLATE =
+"""
+<!DOCTYPE html>
+<html lang="en">
 
-<form method="POST">
-
-  <label>Player Name:</label>
-  <input type="text" id="PlayerName" name="PlayerName"value={{PlayerName}}>
-
-	<br><br>
-
-  <label>Character Name:</label>
-  <input type="text" id="CharacterName" name="CharacterName"value={{CharacterName}}>
-
-	<br><br>
+<head>
+	<title>D&D Character Generator</title>
+	<link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+	<h1>D&D 5e Character Creator</h1>
 	
-  <label for="LVL">Level (1-12):</label>
-  <input type="number" id="LVL" name="LVL" min="1" max="12" value={{LVL}} default=1>
-	
-	<br><br>
-	
-<label>Race:</label>
-<select name="race">
-{% for race in races %}
-	<option value="{{ race }}"
-		{% if selected_race == race %}selected{% endif %}>
-		{{ race }}
-	</option>
-{% endfor %}
-</select>
-<br><br>
-
-<label>Class:</label>
-<select name="class" onchange="this.form.submit()">
-{% for c in classes %}
-	<option value="{{ c }}"
-		{% if selected_class == c %}selected{% endif %}>
-		{{ c }}
-	</option>
-{% endfor %}
-</select>
-<br><br>
-
-<label>Subclass:</label>
-<select name="subclass">
-{% for c in subclasses %}
-	<option value="{{ c }}"
-		{% if selected_subclass == c %}selected{% endif %}>
-		{{ c }}
-	</option>
-{% endfor %}
-</select>
-<br><br>
-
-<label>Background:</label>
-<select name="background">
-{% for bg in backgrounds %}
-	<option value="{{ bg }}"
-		{% if selected_background == bg %}selected{% endif %}>
-		{{ bg }}
-	</option>
-{% endfor %}
-</select>
-<br><br>
-
-<label>Alignment:</label>
-<select name="alignment">
-{% for a in alignments %}
-	<option value="{{ a }}"
-		{% if selected_alignment == a %}selected{% endif %}>
-		{{ a }}
-	</option>
-{% endfor %}
-</select>
-<br><br>
-
-  <label for="STR">STR (3-18):</label>
-  <input type="number" id="STR" name="STR" min="3" max="18" value={{STR}}>
-  
-  <label for="DEX">DEX (3-18):</label>
-  <input type="number" id="DEX" name="DEX" min="3" max="18" value={{DEX}}>
-
-	<br><br>
-
-  <label for="CON">CON (3-18):</label>
-  <input type="number" id="CON" name="CON" min="3" max="18" value={{CON}}>
-
-  <label for="INT">INT (3-18):</label>
-  <input type="number" id="INT" name="INT" min="3" max="18" value={{INT}}>
-
-	<br><br>
-	
-  <label for="WIS">WIS (3-18):</label>
-  <input type="number" id="WIS" name="WIS" min="3" max="18" value={{WIS}}>
-
-  <label for="CHA">CHA (3-18):</label>
-  <input type="number" id="CHA" name="CHA" min="3" max="18" value={{CHA}}>
-
-	<br><br>
-	<br><br>
-	
-<button method="/" name="Generate Abilities">Generate Random Abilities</button>
-	<br><br>
-<button method="/" name="Save PDF">Save PDF</button>
-	<br><br>
-</form>
-
-{% if character %}
-<h2>Character Summary</h2>
-<pre>{{ character }}</pre>
-{% endif %}
+	<div class="container">
+		<form method="POST">
+		
+		  <label>Player Name:</label>
+		  <input type="text" id="PlayerName" name="PlayerName"value={{PlayerName}}>
+		
+			<br><br>
+		
+		  <label>Character Name:</label>
+		  <input type="text" id="CharacterName" name="CharacterName"value={{CharacterName}}>
+		
+			<br><br>
+			
+		  <label for="LVL">Level (1-12):</label>
+		  <input type="number" id="LVL" name="LVL" min="1" max="12" value={{LVL}} default=1>
+			
+			<br><br>
+			
+		<label>Race:</label>
+		<select name="race">
+		{% for race in races %}
+			<option value="{{ race }}"
+				{% if selected_race == race %}selected{% endif %}>
+				{{ race }}
+			</option>
+		{% endfor %}
+		</select>
+		<br><br>
+		
+		<label>Class:</label>
+		<select name="class" onchange="this.form.submit()">
+		{% for c in classes %}
+			<option value="{{ c }}"
+				{% if selected_class == c %}selected{% endif %}>
+				{{ c }}
+			</option>
+		{% endfor %}
+		</select>
+		<br><br>
+		
+		<label>Subclass:</label>
+		<select name="subclass">
+		{% for c in subclasses %}
+			<option value="{{ c }}"
+				{% if selected_subclass == c %}selected{% endif %}>
+				{{ c }}
+			</option>
+		{% endfor %}
+		</select>
+		<br><br>
+		
+		<label>Background:</label>
+		<select name="background">
+		{% for bg in backgrounds %}
+			<option value="{{ bg }}"
+				{% if selected_background == bg %}selected{% endif %}>
+				{{ bg }}
+			</option>
+		{% endfor %}
+		</select>
+		<br><br>
+		
+		<label>Alignment:</label>
+		<select name="alignment">
+		{% for a in alignments %}
+			<option value="{{ a }}"
+				{% if selected_alignment == a %}selected{% endif %}>
+				{{ a }}
+			</option>
+		{% endfor %}
+		</select>
+		<br><br>
+		
+		<label for="STR">STR (3-18):</label>
+		<input type="number" id="STR" name="STR" min="3" max="18" value={{STR}}>
+		  
+		<label for="DEX">DEX (3-18):</label>
+		<input type="number" id="DEX" name="DEX" min="3" max="18" value={{DEX}}>
+		
+			<br><br>
+		
+		<label for="CON">CON (3-18):</label>
+		<input type="number" id="CON" name="CON" min="3" max="18" value={{CON}}>
+		
+		<label for="INT">INT (3-18):</label>
+		<input type="number" id="INT" name="INT" min="3" max="18" value={{INT}}>
+		
+			<br><br>
+			
+		<label for="WIS">WIS (3-18):</label>
+		<input type="number" id="WIS" name="WIS" min="3" max="18" value={{WIS}}>
+		
+		<label for="CHA">CHA (3-18):</label>
+		<input type="number" id="CHA" name="CHA" min="3" max="18" value={{CHA}}>
+		
+			<br><br>
+			<br><br>
+			
+		<button method="/" name="Generate Abilities">Generate Random Abilities</button>
+			<br><br>
+		<button method="/" name="Save PDF">Save PDF</button>
+			<br><br>
+		</form>
+		
+		{% if character %}
+	    <div class="character-card">
+			<h2>Character Summary</h2>
+			<pre>{{ character }}</pre>
+		</div>
+		{% endif %}
+	</div>
+</body>
+</html>
 """
 
 def roll_ability_score():
@@ -154,31 +170,33 @@ def get_proficiency_bonus(lvl):
 
 def get_character():
 	character = {
-				"Name": request.form["CharacterName"] or "Unknown",
-				"PlayerName": request.form["PlayerName"] or "Unknown",
-				"Race": request.form["race"],
-				"Class": request.form["class"],
-				#"Subclass": request.form["subclass"],
-				"Background": request.form["background"],
-				"Level": request.form["LVL"] or 1,
+				"Name": request.form.get("CharacterName") or "Unknown",
+				"PlayerName": request.form.get("PlayerName") or "Unknown",
+				"Race": request.form.get("race"),
+				"Class": request.form.get("class"),
+				"Subclass": request.form.get("subclass"),
+				"Background": request.form.get("background"),
+				"Level": request.form.get("LVL") or 1,
 				"Abilities": {
-					"STR": request.form["STR"],
-					"DEX": request.form["DEX"],
-					"CON": request.form["CON"],
-					"INT": request.form["INT"],
-					"WIS": request.form["WIS"],
-					"CHA": request.form["CHA"],
+					"STR": request.form.get("STR"),
+					"DEX": request.form.get("DEX"),
+					"CON": request.form.get("CON"),
+					"INT": request.form.get("INT"),
+					"WIS": request.form.get("WIS"),
+					"CHA": request.form.get("CHA"),
 				},
 				"Modifiers": {
-					"STR_MOD": get_ability_modifier_str(request.form["STR"]),
-					"DEX_MOD": get_ability_modifier_str(request.form["DEX"]),
-					"CON_MOD": get_ability_modifier_str(request.form["CON"]),
-					"INT_MOD": get_ability_modifier_str(request.form["INT"]),
-					"WIS_MOD": get_ability_modifier_str(request.form["WIS"]),
-					"CHA_MOD": get_ability_modifier_str(request.form["CHA"])
+					"STR_MOD": get_ability_modifier_str(request.form.get("STR")),
+					"DEX_MOD": get_ability_modifier_str(request.form.get("DEX")),
+					"CON_MOD": get_ability_modifier_str(request.form.get("CON")),
+					"INT_MOD": get_ability_modifier_str(request.form.get("INT")),
+					"WIS_MOD": get_ability_modifier_str(request.form.get("WIS")),
+					"CHA_MOD": get_ability_modifier_str(request.form.get("CHA"))
 				},
-				"Alignment": request.form["alignment"]
+				"Alignment": request.form.get("alignment")
 			}
+	if character["Subclass"] == "None":
+		character["Subclass"] = ""
 	return character
 
 @app.route("/", methods=["GET", "POST"])
@@ -186,7 +204,6 @@ def home():
 	# Get options from DB
 	races = sorted([r["name"] for r in db["2014-races"].find({}, {"_id": 0, "name": 1})])
 	classes = sorted([c["name"] for c in db["2014-classes"].find({}, {"_id": 0, "name": 1})])
-	#subclasses = sorted([c["name"] for c in db["2014-subclasses"].find({}, {"_id": 0, "name": 1})])
 	backgrounds = sorted([b["name"] for b in db["2024-backgrounds"].find({}, {"_id": 0, "name": 1})])
 	alignments = sorted([b["name"] for b in db["2024-alignments"].find({}, {"_id": 0, "name": 1})])
 	
@@ -209,23 +226,24 @@ def home():
 	selected_background=backgrounds[0]
 	selected_alignment=alignments[0]
 	selected_subclass=""
-	subclasses = [c["name"] for c in db["2014-subclasses"].find({"class.name": selected_class}, {"_id": 0, "name": 1})]
+	subclasses = ["None"] + [c["name"] for c in db["2024-subclasses"].find({"class.name": selected_class}, {"_id": 0, "name": 1})]
 
 	# Get user selection
 	if request.method == "POST":
 		abilities = {
-			"STR": request.form["STR"] or 3,
-			"DEX": request.form["DEX"] or 3,
-			"CON": request.form["CON"] or 3,
-			"INT": request.form["INT"] or 3,
-			"WIS": request.form["WIS"] or 3,
-			"CHA": request.form["CHA"] or 3
+			"STR": request.form.get("STR") or 3,
+			"DEX": request.form.get("DEX") or 3,
+			"CON": request.form.get("CON") or 3,
+			"INT": request.form.get("INT") or 3,
+			"WIS": request.form.get("WIS") or 3,
+			"CHA": request.form.get("CHA") or 3
 		}
-		lvl=request.form["LVL"] or 1
-		characterName = request.form["CharacterName"] or "Unknown"
-		playerName = request.form["PlayerName"] or "Unknown"
-		selected_class = request.form["class"]
-		subclasses = [c["name"] for c in db["2014-subclasses"].find({"class.name":selected_class}, {"_id": 0, "name": 1})]
+		lvl=request.form.get("LVL") or 1
+		characterName = request.form.get("CharacterName") or "Unknown"
+		playerName = request.form.get("PlayerName") or "Unknown"
+		selected_class = request.form.get("class")
+		selected_race = request.form.get("race")
+		subclasses = ["None"] + [c["name"] for c in db["2024-subclasses"].find({"class.name":selected_class}, {"_id": 0, "name": 1})]
 		if "Generate Abilities" in request.form: # Generate Random Abilities button was pressed
 			character = get_character()
 			lvl = character["Level"]
@@ -241,9 +259,9 @@ def home():
 				}
 			selected_race=character["Race"]
 			selected_class=character["Class"]
+			selected_subclass=character["Subclass"]
 			selected_background=character["Background"]
 			selected_alignment=character["Alignment"]
-			#subclasses = [c["name"] for c in db["2014-subclasses"].find({"class.name":selected_class}, {"_id": 0})]
 			character = json.dumps(character, indent=2)
 		if "Create Character" in request.form: # Create Character button was pressed
 			character = get_character()
@@ -255,7 +273,6 @@ def home():
 			selected_class=character["Class"]
 			selected_background=character["Background"]
 			selected_alignment=character["Alignment"]
-			#subclasses = [c["name"] for c in db["2014-subclasses"].find({"class.name":selected_class}, {"_id": 0})]
 			character = json.dumps(character, indent=2)
 		if "Save PDF" in request.form: # Save PDF button was pressed
 			character = get_character()
@@ -274,7 +291,7 @@ def home():
 				"CharacterName_Field": name_field,
 				"Race_Field": character["Race"],
 				"Class_Field": character['Class'],
-				#"Subclass_Field": character['Subclass'],
+				"Subclass_Field": character['Subclass'],
 				"Background_Field": character["Background"],
 				"Alignment_Field": character["Alignment"],
 				
@@ -311,13 +328,12 @@ def home():
 			selected_class=character["Class"]
 			selected_background=character["Background"]
 			selected_alignment=character["Alignment"]
-			#subclasses = [c["name"] for c in db["2014-subclasses"].find({"class.name":selected_class}, {"_id": 0})]
 			character = json.dumps(character, indent=2)
 			return send_file(tmp.name, as_attachment=True, download_name="character.pdf")
 		
 		# Return data
-		return render_template_string(
-			TEMPLATE,
+		return render_template(
+			"index.html",
 			PlayerName=playerName,
 			CharacterName=characterName,
 			LVL=lvl,
@@ -338,8 +354,8 @@ def home():
 			WIS=abilities["WIS"],
 			CHA=abilities["CHA"]
 		)
-	return render_template_string(
-		TEMPLATE,
+	return render_template(
+		"index.html",
 		races=races,
 		selected_race=selected_race,
 		classes=classes,
