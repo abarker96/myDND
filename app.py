@@ -11,8 +11,21 @@ from pypdf.generic import NameObject, BooleanObject
 
 app = Flask(__name__)
 
+# Configure Database
 client = MongoClient("mongodb://localhost:27017")
 db = client["5e-database"]
+
+# Define Database tables to use
+
+RACES_TABLE = "2014-races"
+SKILLS_TABLE = "2014-skills"
+CLASSES_TABLE = "2014-classes"
+PROFICIENCIES_TABLE = "2014-proficiencies"
+BACKGROUNDS_TABLE = "2024-backgrounds"
+ALIGNMENTS_TABLE = "2024-alignments"
+SUBCLASSES_TABLE = "2024-subclasses"
+
+
 
 standard_abilities = {
 	"Barbarian":    {"STR": 15, "DEX": 13, "CON": 14, "INT": 10, "WIS": 12, "CHA": 8},
@@ -47,8 +60,8 @@ def get_skill_score(character):
 	proficiencyBonus = get_proficiency_bonus(character["Level"])
 	selected_race = character["Race"]
 	selected_class = character["Class"]
-	race_proficiencies = [c["name"] for c in db["2014-proficiencies"].find({"races.name": selected_race}, {"_id": 0, "name": 1})]
-	class_proficiencies = [c["name"] for c in db["2014-proficiencies"].find({"classes.name": selected_class}, {"_id": 0, "name": 1})]
+	race_proficiencies = [c["name"] for c in db[PROFICIENCIES_TABLE].find({"races.name": selected_race}, {"_id": 0, "name": 1})]
+	class_proficiencies = [c["name"] for c in db[PROFICIENCIES_TABLE].find({"classes.name": selected_class}, {"_id": 0, "name": 1})]
 	proficiencies = { }
 	for c in race_proficiencies:
 		#skill_mod =
@@ -56,7 +69,7 @@ def get_skill_score(character):
 
 
 def get_class_proficiency_options(class_name):
-	class_obj = db["2014-classes"].find_one(
+	class_obj = db[CLASSES_TABLE].find_one(
 		{"name": class_name},
 		{"_id": 0}
 	)
@@ -112,7 +125,7 @@ def get_proficiency_bonus(lvl):
 	return (lvl - 1) // 4 + 2
 
 def get_all_skills():
-	skills = {c["name"]: c["ability_score"]["name"] for c in db["2014-skills"].find({}, {"_id": 0})}
+	skills = {c["name"]: c["ability_score"]["name"] for c in db[SKILLS_TABLE].find({}, {"_id": 0})}
 	return skills
 
 def get_character():
@@ -165,10 +178,10 @@ def get_character():
 @app.route("/", methods=["GET", "POST"])
 def home():
 	# Get options from DB
-	races = sorted([r["name"] for r in db["2014-races"].find({}, {"_id": 0, "name": 1})])
-	classes = sorted([c["name"] for c in db["2014-classes"].find({}, {"_id": 0, "name": 1})])
-	backgrounds = sorted([b["name"] for b in db["2024-backgrounds"].find({}, {"_id": 0, "name": 1})])
-	alignments = sorted([b["name"] for b in db["2024-alignments"].find({}, {"_id": 0, "name": 1})])
+	races = sorted([r["name"] for r in db[RACES_TABLE].find({}, {"_id": 0, "name": 1})])
+	classes = sorted([c["name"] for c in db[CLASSES_TABLE].find({}, {"_id": 0, "name": 1})])
+	backgrounds = sorted([b["name"] for b in db[BACKGROUNDS_TABLE].find({}, {"_id": 0, "name": 1})])
+	alignments = sorted([b["name"] for b in db[ALIGNMENTS_TABLE].find({}, {"_id": 0, "name": 1})])
 	
 	# Initialize empty character
 	character = None
@@ -189,7 +202,7 @@ def home():
 	selected_background=backgrounds[0]
 	selected_alignment=alignments[0]
 	selected_subclass=""
-	subclasses = ["None"] + [c["name"] for c in db["2024-subclasses"].find({"class.name": selected_class}, {"_id": 0, "name": 1})]
+	subclasses = ["None"] + [c["name"] for c in db[SUBCLASSES_TABLE].find({"class.name": selected_class}, {"_id": 0, "name": 1})]
 	prof_choices, prof_choice_count = get_class_proficiency_options(selected_class)
 	selected_profs = []
 
@@ -208,7 +221,7 @@ def home():
 		playerName = request.form.get("PlayerName") or "Unknown"
 		selected_class = request.form.get("class")
 		selected_race = request.form.get("race")
-		subclasses = ["None"] + [c["name"] for c in db["2024-subclasses"].find({"class.name":selected_class}, {"_id": 0, "name": 1})]
+		subclasses = ["None"] + [c["name"] for c in db[SUBCLASSES_TABLE].find({"class.name":selected_class}, {"_id": 0, "name": 1})]
 		prof_choices, prof_choice_count = get_class_proficiency_options(selected_class)
 		print(f"Choose {prof_choice_count}")
 		for c in prof_choices:
