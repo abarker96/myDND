@@ -14,13 +14,19 @@ app = Flask(__name__)
 client = MongoClient("mongodb://localhost:27017")
 db = client["5e-database"]
 
-SKILLS = {
-	"STR": ["Athletics"],
-	"DEX": ["Acrobatics", "Sleight of Hand", "Stealth"],
-	"CON": [],
-	"INT": ["Arcana", "History", "Investigation", "Nature", "Religion"],
-	"WIS": ["Animal Handling", "Insight", "Medicine", "Perception", "Survival"],
-	"CHA": ["Deception", "Intimidation", "Performance", "Persuasion"]
+standard_abilities = {
+	"Barbarian":    {"STR": 15, "DEX": 13, "CON": 14, "INT": 10, "WIS": 12, "CHA": 8},
+	"Bard":         {"STR": 8,  "DEX": 14, "CON": 12, "INT": 13, "WIS": 10, "CHA": 15},
+	"Cleric":       {"STR": 14, "DEX": 8,  "CON": 13, "INT": 10, "WIS": 15, "CHA": 12},
+	"Druid":        {"STR": 8,  "DEX": 12, "CON": 14, "INT": 13, "WIS": 15, "CHA": 10},
+	"Fighter":      {"STR": 15, "DEX": 14, "CON": 13, "INT": 8,  "WIS": 10, "CHA": 12},
+	"Monk":         {"STR": 12, "DEX": 15, "CON": 13, "INT": 10, "WIS": 14, "CHA": 8},
+	"Paladin":      {"STR": 15, "DEX": 10, "CON": 13, "INT": 8,  "WIS": 12, "CHA": 10},
+	"Ranger":       {"STR": 12, "DEX": 15, "CON": 13, "INT": 8,  "WIS": 14, "CHA": 10},
+	"Rogue":        {"STR": 12, "DEX": 15, "CON": 13, "INT": 14, "WIS": 10, "CHA": 8},
+	"Sorcerer":     {"STR": 10, "DEX": 13, "CON": 14, "INT": 8,  "WIS": 12, "CHA": 15},
+	"Warlock":      {"STR": 8,  "DEX": 14, "CON": 13, "INT": 12, "WIS": 10, "CHA": 15},
+	"Wizard":       {"STR": 8,  "DEX": 12, "CON": 13, "INT": 15, "WIS": 14, "CHA": 10}
 }
 
 def roll_ability_score():
@@ -130,12 +136,12 @@ def get_character():
 					"CHA": request.form.get("CHA"),
 				},
 				"Modifiers": {
-					"STR_MOD": get_ability_modifier_str(request.form.get("STR")),
-					"DEX_MOD": get_ability_modifier_str(request.form.get("DEX")),
-					"CON_MOD": get_ability_modifier_str(request.form.get("CON")),
-					"INT_MOD": get_ability_modifier_str(request.form.get("INT")),
-					"WIS_MOD": get_ability_modifier_str(request.form.get("WIS")),
-					"CHA_MOD": get_ability_modifier_str(request.form.get("CHA"))
+					"STR": get_ability_modifier_str(request.form.get("STR")),
+					"DEX": get_ability_modifier_str(request.form.get("DEX")),
+					"CON": get_ability_modifier_str(request.form.get("CON")),
+					"INT": get_ability_modifier_str(request.form.get("INT")),
+					"WIS": get_ability_modifier_str(request.form.get("WIS")),
+					"CHA": get_ability_modifier_str(request.form.get("CHA"))
 				},
 				"Alignment": request.form.get("alignment")
 			}
@@ -144,7 +150,7 @@ def get_character():
 	selected_proficiencies = request.form.getlist("proficiencies")
 	character["Skills"] = {}
 	for s in all_skills:
-		ability = all_skills[s] + "_MOD"
+		ability = all_skills[s]
 		if s in selected_proficiencies:
 			character["Skills"][s] = to_signed(int(character["Modifiers"][ability]) + int(character["ProficiencyBonus"]))
 		else:
@@ -229,8 +235,6 @@ def home():
 			character = json.dumps(character, indent=2)
 		if "Create Character" in request.form: # Create Character button was pressed
 			character = get_character()
-			playerName = character["PlayerName"]
-			characterName = character["Name"]
 			lvl = character["Level"]
 			abilities = character["Abilities"]
 			selected_race=character["Race"]
@@ -238,6 +242,11 @@ def home():
 			selected_background=character["Background"]
 			selected_alignment=character["Alignment"]
 			character = json.dumps(character, indent=2)
+		
+		if "Standard Abilities" in request.form:
+			if selected_class in standard_abilities:
+				abilities = standard_abilities[selected_class]
+			
 		if "Save PDF" in request.form: # Save PDF button was pressed
 			character = get_character()
 			template = "/res/DnD_2024_Character-Sheet R3.pdf"
@@ -266,12 +275,12 @@ def home():
 				"WIS_Field": str(character["Abilities"]["WIS"]),
 				"CHA_Field": str(character["Abilities"]["CHA"]),
 				
-				"STR_Mod_Field": character["Modifiers"]["STR_MOD"],
-				"DEX_Mod_Field": character["Modifiers"]["DEX_MOD"],
-				"CON_Mod_Field": character["Modifiers"]["CON_MOD"],
-				"INT_Mod_Field": character["Modifiers"]["INT_MOD"],
-				"WIS_Mod_Field": character["Modifiers"]["WIS_MOD"],
-				"CHA_Mod_Field": character["Modifiers"]["CHA_MOD"],
+				"STR_Mod_Field": character["Modifiers"]["STR"],
+				"DEX_Mod_Field": character["Modifiers"]["DEX"],
+				"CON_Mod_Field": character["Modifiers"]["CON"],
+				"INT_Mod_Field": character["Modifiers"]["INT"],
+				"WIS_Mod_Field": character["Modifiers"]["WIS"],
+				"CHA_Mod_Field": character["Modifiers"]["CHA"],
 				
 				"LVL_Field": str(character["Level"]),
 				"ProficiencyBonus": character["ProficiencyBonus"],

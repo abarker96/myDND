@@ -90,6 +90,9 @@ def get_all_skills():
 	skills = {c["name"]:c["ability_score"]["name"] for c in db["2014-skills"].find({}, {"_id": 0})}
 	return skills
 	
+def get_all_classes():
+	classes = {c["name"] for c in db["2014-classes"].find({}, {"_id": 0})}
+	return classes
 
 client = MongoClient("mongodb://localhost:27017")
 db = client["5e-database"]
@@ -113,7 +116,7 @@ skills = get_all_skills()
 for c in skills:
 	print(f"\t{c} : {skills[c]}")
 """
-
+"""
 # define skills
 selected_proficiencies = ["Arcana","Religion"]
 all_skills = get_all_skills()
@@ -127,5 +130,108 @@ for s in all_skills:
 for c in character:
 	print(f"{c} : {character[c]}")
 #print(character)
+"""
+
+standard_attributes = {
+	"Barbarian":{
+		"STR":15,
+		"DEX":13,
+		"CON":14,
+		"INT":10,
+		"WIS":12,
+		"CHA":8
+	},
+	"Bard":{
+		"STR":8,
+		"DEX":14,
+		"CON":12,
+		"INT":13,
+		"WIS":10,
+		"CHA":15
+	},
+	"Cleric":{
+		"STR":14,
+		"DEX":8,
+		"CON":13,
+		"INT":10,
+		"WIS":15,
+		"CHA":12
+	},
+	"Druid":{
+		"STR":8,
+		"DEX":12,
+		"CON":14,
+		"INT":13,
+		"WIS":15,
+		"CHA":10
+	},
+	"Fighter":{
+		"STR":15,
+		"DEX":14,
+		"CON":13,
+		"INT":8,
+		"WIS":10,
+		"CHA":12
+	},
+	"Monk":{
+		"STR":12,
+		"DEX":15,
+		"CON":13,
+		"INT":10,
+		"WIS":14,
+		"CHA":8
+	},
+	"Paladin":{
+		"STR":15,
+		"DEX":10,
+		"CON":13,
+		"INT":8,
+		"WIS":12,
+		"CHA":10
+	},
+	"Ranger":{
+		"STR":12,
+		"DEX":15,
+		"CON":13,
+		"INT":8,
+		"WIS":14,
+		"CHA":10
+	},
+	"Rogue":{
+		"STR":12,
+		"DEX":15,
+		"CON":13,
+		"INT":14,
+		"WIS":10,
+		"CHA":8
+	},
+	"Sorcerer":{
+		"STR":10,
+		"DEX":13,
+		"CON":14,
+		"INT":8,
+		"WIS":12,
+		"CHA":15
+	},
+	"Warlock":{
+		"STR":8,
+		"DEX":14,
+		"CON":13,
+		"INT":12,
+		"WIS":10,
+		"CHA":15
+	},
+	"Wizard":{
+		"STR":8,
+		"DEX":12,
+		"CON":13,
+		"INT":15,
+		"WIS":14,
+		"CHA":10
+	}
+}
+
+for c in standard_attributes:
+	print(f"'{c}' : {standard_attributes[c]},".replace("'", '"'))
 
 client.close()
