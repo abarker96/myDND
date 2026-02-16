@@ -93,6 +93,10 @@ def get_all_skills():
 def get_all_classes():
 	classes = {c["name"] for c in db["2014-classes"].find({}, {"_id": 0})}
 	return classes
+	
+def get_all_races():
+	races = db["2014-races"].find({}, {"_id": 0})
+	return races
 
 client = MongoClient("mongodb://localhost:27017")
 db = client["5e-database"]
@@ -132,106 +136,22 @@ for c in character:
 #print(character)
 """
 
-standard_attributes = {
-	"Barbarian":{
-		"STR":15,
-		"DEX":13,
-		"CON":14,
-		"INT":10,
-		"WIS":12,
-		"CHA":8
-	},
-	"Bard":{
-		"STR":8,
-		"DEX":14,
-		"CON":12,
-		"INT":13,
-		"WIS":10,
-		"CHA":15
-	},
-	"Cleric":{
-		"STR":14,
-		"DEX":8,
-		"CON":13,
-		"INT":10,
-		"WIS":15,
-		"CHA":12
-	},
-	"Druid":{
-		"STR":8,
-		"DEX":12,
-		"CON":14,
-		"INT":13,
-		"WIS":15,
-		"CHA":10
-	},
-	"Fighter":{
-		"STR":15,
-		"DEX":14,
-		"CON":13,
-		"INT":8,
-		"WIS":10,
-		"CHA":12
-	},
-	"Monk":{
-		"STR":12,
-		"DEX":15,
-		"CON":13,
-		"INT":10,
-		"WIS":14,
-		"CHA":8
-	},
-	"Paladin":{
-		"STR":15,
-		"DEX":10,
-		"CON":13,
-		"INT":8,
-		"WIS":12,
-		"CHA":10
-	},
-	"Ranger":{
-		"STR":12,
-		"DEX":15,
-		"CON":13,
-		"INT":8,
-		"WIS":14,
-		"CHA":10
-	},
-	"Rogue":{
-		"STR":12,
-		"DEX":15,
-		"CON":13,
-		"INT":14,
-		"WIS":10,
-		"CHA":8
-	},
-	"Sorcerer":{
-		"STR":10,
-		"DEX":13,
-		"CON":14,
-		"INT":8,
-		"WIS":12,
-		"CHA":15
-	},
-	"Warlock":{
-		"STR":8,
-		"DEX":14,
-		"CON":13,
-		"INT":12,
-		"WIS":10,
-		"CHA":15
-	},
-	"Wizard":{
-		"STR":8,
-		"DEX":12,
-		"CON":13,
-		"INT":15,
-		"WIS":14,
-		"CHA":10
-	}
+standard_abilities = {
+	"Barbarian":    {"STR": 15, "DEX": 13, "CON": 14, "INT": 10, "WIS": 12, "CHA": 8},
+	"Bard":         {"STR": 8,  "DEX": 14, "CON": 12, "INT": 13, "WIS": 10, "CHA": 15},
+	"Cleric":       {"STR": 14, "DEX": 8,  "CON": 13, "INT": 10, "WIS": 15, "CHA": 12},
+	"Druid":        {"STR": 8,  "DEX": 12, "CON": 14, "INT": 13, "WIS": 15, "CHA": 10},
+	"Fighter":      {"STR": 15, "DEX": 14, "CON": 13, "INT": 8,  "WIS": 10, "CHA": 12},
+	"Monk":         {"STR": 12, "DEX": 15, "CON": 13, "INT": 10, "WIS": 14, "CHA": 8},
+	"Paladin":      {"STR": 15, "DEX": 10, "CON": 13, "INT": 8,  "WIS": 12, "CHA": 10},
+	"Ranger":       {"STR": 12, "DEX": 15, "CON": 13, "INT": 8,  "WIS": 14, "CHA": 10},
+	"Rogue":        {"STR": 12, "DEX": 15, "CON": 13, "INT": 14, "WIS": 10, "CHA": 8},
+	"Sorcerer":     {"STR": 10, "DEX": 13, "CON": 14, "INT": 8,  "WIS": 12, "CHA": 15},
+	"Warlock":      {"STR": 8,  "DEX": 14, "CON": 13, "INT": 12, "WIS": 10, "CHA": 15},
+	"Wizard":       {"STR": 8,  "DEX": 12, "CON": 13, "INT": 15, "WIS": 14, "CHA": 10}
 }
 
-for c in standard_attributes:
-	print(f"'{c}' : {standard_attributes[c]},".replace("'", '"'))
+for c in get_all_races():
+	print(f"'{c["name"]}' : {c["speed"]},".replace("'", '"'))
 
 client.close()

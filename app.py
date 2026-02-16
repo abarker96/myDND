@@ -128,13 +128,23 @@ def get_all_skills():
 	skills = {c["name"]: c["ability_score"]["name"] for c in db[SKILLS_TABLE].find({}, {"_id": 0})}
 	return skills
 
+def get_selected_races_obj(race):
+	race = db[RACES_TABLE].find({"name":race}, {"_id": 0})
+	try:
+		race = race[0]
+	except Exception as e:
+		return None
+	return race
+
 def get_character():
+	selected_race = request.form.get("race")
 	all_skills = get_all_skills()
+	selected_race_obj = get_selected_races_obj(selected_race)
 	lvl = request.form.get("LVL") or 1
 	character = {
 				"Name": request.form.get("CharacterName") or "Unknown",
 				"PlayerName": request.form.get("PlayerName") or "Unknown",
-				"Race": request.form.get("race"),
+				"Race": selected_race,
 				"Class": request.form.get("class"),
 				"Subclass": request.form.get("subclass"),
 				"Background": request.form.get("background"),
@@ -156,7 +166,8 @@ def get_character():
 					"WIS": get_ability_modifier_str(request.form.get("WIS")),
 					"CHA": get_ability_modifier_str(request.form.get("CHA"))
 				},
-				"Alignment": request.form.get("alignment")
+				"Alignment": request.form.get("alignment"),
+				"Speed": selected_race_obj["speed"]
 			}
 	
 	# define skills
@@ -324,7 +335,9 @@ def home():
 				"Decption_Field": character["Skills"]["Deception"],
 				"Intimidation_Field": character["Skills"]["Intimidation"],
 				"Performance_Field": character["Skills"]["Performance"],
-				"Persuasion_Field": character["Skills"]["Persuasion"]
+				"Persuasion_Field": character["Skills"]["Persuasion"],
+				
+				"Speed_Field": character["Speed"]
 			}
 			
 			# update all pages in pdf
