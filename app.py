@@ -14,11 +14,75 @@ app = Flask(__name__)
 client = MongoClient("mongodb://localhost:27017")
 db = client["5e-database"]
 
+SKILLS = {
+	"STR": ["Athletics"],
+	"DEX": ["Acrobatics", "Sleight of Hand", "Stealth"],
+	"CON": [],
+	"INT": ["Arcana", "History", "Investigation", "Nature", "Religion"],
+	"WIS": ["Animal Handling", "Insight", "Medicine", "Perception", "Survival"],
+	"CHA": ["Deception", "Intimidation", "Performance", "Persuasion"]
+}
 
 def roll_ability_score():
 	"""Generate random ability score based on D&D Rules"""
 	rolls = sorted([random.randint(1,6) for _ in range(4)])
 	return sum(rolls[1:])
+
+def get_skill_score(character):
+	"""Generate random ability score based on D&D Rules
+	Skills. For skills you have proficiency in, add your
+	Proficiency Bonus to the ability modifier associated with
+	that skill, and note the total. You might also wish to note
+	the modifier for skills you're not proficient in, which is
+	just the relevant ability modifier.
+	"""
+	"""Skill Modifier = Relevant Ability Modifier + Proficiency Bonus + Other Modifiers"""
+	#need to go through this and finish it
+	proficiencyBonus = get_proficiency_bonus(character["Level"])
+	selected_race = character["Race"]
+	selected_class = character["Class"]
+	race_proficiencies = [c["name"] for c in db["2014-proficiencies"].find({"races.name": selected_race}, {"_id": 0, "name": 1})]
+	class_proficiencies = [c["name"] for c in db["2014-proficiencies"].find({"classes.name": selected_class}, {"_id": 0, "name": 1})]
+	proficiencies = { }
+	for c in race_proficiencies:
+		#skill_mod =
+		proficiencies[c] = proficiencyBonus
+
+
+def get_class_proficiency_options(class_name):
+	class_obj = db["2014-classes"].find_one(
+		{"name": class_name},
+		{"_id": 0}
+	)
+
+	if not class_obj:
+		print("No class found:", class_name)
+		return [], 0
+
+	if "proficiency_choices" not in class_obj:
+		print("No proficiency_choices in class:", class_name)
+		return [], 0
+
+	try:
+		choice_count = class_obj["proficiency_choices"][0]["choose"]
+		choices_temp = class_obj["proficiency_choices"][0]["from"]["options"]
+
+		choices = [
+			t["item"]["name"].replace("Skill: ", "")
+			for t in choices_temp
+		]
+
+		return choices, choice_count
+
+	except Exception as e:
+		print("Error extracting proficiencies:", e)
+		return [], 0
+
+def to_signed(num):
+	if num > 0:
+		return "+" + str(num)
+	else:
+		return str(num)
 
 def get_ability_modifier_str(ability):
 	"""Calculate ability modifier and return it as a string"""
@@ -41,7 +105,13 @@ def get_proficiency_bonus(lvl):
 		return 1
 	return (lvl - 1) // 4 + 2
 
+def get_all_skills():
+	skills = {c["name"]: c["ability_score"]["name"] for c in db["2014-skills"].find({}, {"_id": 0})}
+	return skills
+
 def get_character():
+	all_skills = get_all_skills()
+	lvl = request.form.get("LVL") or 1
 	character = {
 				"Name": request.form.get("CharacterName") or "Unknown",
 				"PlayerName": request.form.get("PlayerName") or "Unknown",
@@ -49,7 +119,8 @@ def get_character():
 				"Class": request.form.get("class"),
 				"Subclass": request.form.get("subclass"),
 				"Background": request.form.get("background"),
-				"Level": request.form.get("LVL") or 1,
+				"Level": lvl,
+				"ProficiencyBonus": "+" + str(get_proficiency_bonus(lvl)),
 				"Abilities": {
 					"STR": request.form.get("STR"),
 					"DEX": request.form.get("DEX"),
@@ -68,8 +139,21 @@ def get_character():
 				},
 				"Alignment": request.form.get("alignment")
 			}
+	
+	# define skills
+	selected_proficiencies = request.form.getlist("proficiencies")
+	character["Skills"] = {}
+	for s in all_skills:
+		ability = all_skills[s] + "_MOD"
+		if s in selected_proficiencies:
+			character["Skills"][s] = to_signed(int(character["Modifiers"][ability]) + int(character["ProficiencyBonus"]))
+		else:
+			character["Skills"][s] = to_signed(int(character["Modifiers"][ability]))
+	
+	# check for empty subclass
 	if character["Subclass"] == "None":
 		character["Subclass"] = ""
+	
 	return character
 
 @app.route("/", methods=["GET", "POST"])
@@ -100,6 +184,8 @@ def home():
 	selected_alignment=alignments[0]
 	selected_subclass=""
 	subclasses = ["None"] + [c["name"] for c in db["2024-subclasses"].find({"class.name": selected_class}, {"_id": 0, "name": 1})]
+	prof_choices, prof_choice_count = get_class_proficiency_options(selected_class)
+	selected_profs = []
 
 	# Get user selection
 	if request.method == "POST":
@@ -117,6 +203,11 @@ def home():
 		selected_class = request.form.get("class")
 		selected_race = request.form.get("race")
 		subclasses = ["None"] + [c["name"] for c in db["2024-subclasses"].find({"class.name":selected_class}, {"_id": 0, "name": 1})]
+		prof_choices, prof_choice_count = get_class_proficiency_options(selected_class)
+		print(f"Choose {prof_choice_count}")
+		for c in prof_choices:
+			print(f"\t{c}")
+		selected_profs = request.form.getlist("proficiencies")
 		if "Generate Abilities" in request.form: # Generate Random Abilities button was pressed
 			character = get_character()
 			lvl = character["Level"]
@@ -175,24 +266,49 @@ def home():
 				"WIS_Field": str(character["Abilities"]["WIS"]),
 				"CHA_Field": str(character["Abilities"]["CHA"]),
 				
-				"STR_Mod_Field": get_ability_modifier_str(character["Abilities"]["STR"]),
-				"DEX_Mod_Field": get_ability_modifier_str(character["Abilities"]["DEX"]),
-				"CON_Mod_Field": get_ability_modifier_str(character["Abilities"]["CON"]),
-				"INT_Mod_Field": get_ability_modifier_str(character["Abilities"]["INT"]),
-				"WIS_Mod_Field": get_ability_modifier_str(character["Abilities"]["WIS"]),
-				"CHA_Mod_Field": get_ability_modifier_str(character["Abilities"]["CHA"]),
+				"STR_Mod_Field": character["Modifiers"]["STR_MOD"],
+				"DEX_Mod_Field": character["Modifiers"]["DEX_MOD"],
+				"CON_Mod_Field": character["Modifiers"]["CON_MOD"],
+				"INT_Mod_Field": character["Modifiers"]["INT_MOD"],
+				"WIS_Mod_Field": character["Modifiers"]["WIS_MOD"],
+				"CHA_Mod_Field": character["Modifiers"]["CHA_MOD"],
 				
 				"LVL_Field": str(character["Level"]),
-				"ProficiencyBonus": "+" + str(get_proficiency_bonus(character["Level"])),
+				"ProficiencyBonus": character["ProficiencyBonus"],
 				
 				#"Traits_Field": str(character["Trait"]),
 				# "Languages_Field": ", ".join(character["Languages"]),
 				"Languages_Field": "Common",
+				
+				#STR
+				"Athletics_Field": character["Skills"]["Athletics"],
+				#DEX
+				"Acrobatics_Field": character["Skills"]["Acrobatics"],
+				"SleightOfHand_Field": character["Skills"]["Sleight of Hand"],
+				"Stealth_Field": character["Skills"]["Stealth"],
+				#INT
+				"Arcana_Field": character["Skills"]["Arcana"],
+				"History_Field": character["Skills"]["History"],
+				"Investigation_Field": character["Skills"]["Investigation"],
+				"Nature_Field": character["Skills"]["Nature"],
+				"Religion_Field": character["Skills"]["Religion"],
+				#WIS
+				"AnimalHandling_Field": character["Skills"]["Animal Handling"],
+				"Insight_Field": character["Skills"]["Insight"],
+				"Medicine_Field": character["Skills"]["Medicine"],
+				"Perception_Field": character["Skills"]["Perception"],
+				"Survival_Field": character["Skills"]["Survival"],
+				#CHA
+				"Decption_Field": character["Skills"]["Deception"],
+				"Intimidation_Field": character["Skills"]["Intimidation"],
+				"Performance_Field": character["Skills"]["Performance"],
+				"Persuasion_Field": character["Skills"]["Persuasion"]
 			}
 			
+			# update all pages in pdf
 			for page in writer.pages:
 				writer.update_page_form_field_values(page, field_data)
-		
+			
 			tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
 			with open(tmp.name, "wb") as f:
 				writer.write(f)
@@ -202,31 +318,10 @@ def home():
 			selected_background=character["Background"]
 			selected_alignment=character["Alignment"]
 			character = json.dumps(character, indent=2)
+			
+			# export pdf
 			return send_file(tmp.name, as_attachment=True, download_name="character.pdf")
 		
-		# Return data
-		return render_template(
-			"index.html",
-			PlayerName=playerName,
-			CharacterName=characterName,
-			LVL=lvl,
-			races=races,
-			selected_race=selected_race,
-			classes=classes,
-			selected_class=selected_class,
-			subclasses=subclasses,
-			selected_subclass=selected_subclass,
-			backgrounds=backgrounds,
-			selected_background=selected_background,
-			alignments=alignments,
-			selected_alignment=selected_alignment,
-			STR=abilities["STR"],
-			DEX=abilities["DEX"],
-			CON=abilities["CON"],
-			INT=abilities["INT"],
-			WIS=abilities["WIS"],
-			CHA=abilities["CHA"]
-		)
 	return render_template(
 		"index.html",
 		races=races,
@@ -240,6 +335,9 @@ def home():
 		alignments=alignments,
 		selected_alignment=selected_alignment,
 		PlayerName=playerName,
+	    proficiency_choices=prof_choices,
+	    proficiency_count=prof_choice_count,
+	    selected_profs=selected_profs,
 		CharacterName=characterName,
 		LVL=lvl,
 		STR=abilities["STR"],
@@ -250,5 +348,6 @@ def home():
 		CHA=abilities["CHA"]
 	)
 
+# Run the app
 if __name__ == "__main__":
 	app.run(host="0.0.0.0", port=5000)
