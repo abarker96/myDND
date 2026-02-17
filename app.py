@@ -1,7 +1,7 @@
 # AJ Barker
+#
 # Dungeons and Dragons Web interface for 5E-Database python project
 # This project adds a character builder web interface on top of the 5E-Database
-# More changes to come
 
 from flask import Flask, render_template_string, render_template, request, send_file
 from pymongo import MongoClient
@@ -16,7 +16,6 @@ client = MongoClient("mongodb://localhost:27017")
 db = client["5e-database"]
 
 # Define Database tables to use
-
 RACES_TABLE = "2014-races"
 SKILLS_TABLE = "2014-skills"
 CLASSES_TABLE = "2014-classes"
@@ -43,20 +42,32 @@ standard_abilities = {
 }
 
 def roll_ability_score():
-	"""Generate random ability score based on D&D Rules"""
+	"""Generate random ability score based on D&D Rules
+	Simulates rolling 4d6 and taking top 3
+	:return: sum of top 3 of 4 random integers from 1-6
+	"""
 	rolls = sorted([random.randint(1,6) for _ in range(4)])
 	return sum(rolls[1:])
 
 def get_skill_score(character):
-	"""Generate random ability score based on D&D Rules
+	"""
+	Generate random ability score based on D&D Rules
+	
+	Currently this doesn't do anything.
+	Need to finish building out functionality.
+	
+	From the handbook:
 	Skills. For skills you have proficiency in, add your
 	Proficiency Bonus to the ability modifier associated with
 	that skill, and note the total. You might also wish to note
 	the modifier for skills you're not proficient in, which is
 	just the relevant ability modifier.
+	
+	Skill Modifier = Relevant Ability Modifier + Proficiency Bonus + Other Modifiers
+	
+	:param character:
+	:return:
 	"""
-	"""Skill Modifier = Relevant Ability Modifier + Proficiency Bonus + Other Modifiers"""
-	#need to go through this and finish it
 	proficiencyBonus = get_proficiency_bonus(character["Level"])
 	selected_race = character["Race"]
 	selected_class = character["Class"]
@@ -64,11 +75,14 @@ def get_skill_score(character):
 	class_proficiencies = [c["name"] for c in db[PROFICIENCIES_TABLE].find({"classes.name": selected_class}, {"_id": 0, "name": 1})]
 	proficiencies = { }
 	for c in race_proficiencies:
-		#skill_mod =
 		proficiencies[c] = proficiencyBonus
 
-
 def get_class_proficiency_options(class_name):
+	"""
+	Get class proficiency options from database based on class name
+	:param class_name:
+	:return:
+	"""
 	class_obj = db[CLASSES_TABLE].find_one(
 		{"name": class_name},
 		{"_id": 0}
@@ -98,13 +112,22 @@ def get_class_proficiency_options(class_name):
 		return [], 0
 
 def to_signed(num):
+	"""
+	Input integer and return formatted string representation
+	:param num: Integer value
+	:return: Formatted string of number
+	"""
 	if num > 0:
 		return "+" + str(num)
 	else:
 		return str(num)
 
 def get_ability_modifier_str(ability):
-	"""Calculate ability modifier and return it as a string"""
+	"""
+	Calculate ability modifier and return it as a string
+	:param ability: Integer value of ability
+	:return: Formatted string of ability modifier
+	"""
 	try:
 		ability = int(ability)
 	except:
@@ -117,7 +140,11 @@ def get_ability_modifier_str(ability):
 	return ret
 
 def get_proficiency_bonus(lvl):
-	"""Input Level, return proficiency bonus"""
+	"""
+	Input Level, return proficiency bonus calculated based on level
+	:param lvl: character level
+	:return: return proficiency bonus
+	"""
 	try:
 		lvl = int(lvl)
 	except:
@@ -125,10 +152,19 @@ def get_proficiency_bonus(lvl):
 	return (lvl - 1) // 4 + 2
 
 def get_all_skills():
+	"""
+	Get all skills from database
+	:return: Return all skill names from database
+	"""
 	skills = {c["name"]: c["ability_score"]["name"] for c in db[SKILLS_TABLE].find({}, {"_id": 0})}
 	return skills
 
 def get_selected_races_obj(race):
+	"""
+	Get database information for selected race
+	:param race: Character Race
+	:return: Table Object for selected race
+	"""
 	race = db[RACES_TABLE].find({"name":race}, {"_id": 0})
 	try:
 		race = race[0]
@@ -136,7 +172,20 @@ def get_selected_races_obj(race):
 		return None
 	return race
 
+def list_to_string(list):
+	"""
+	Input a list of values and return formatted string
+	:param list: list of values to format
+	:return: Cama separated string value
+	"""
+	txt = str(list).replace("[", "").replace("]", "").replace("'","")
+	return txt
+
 def get_character():
+	"""
+	Get Character data from form
+	:return: Returns formated character dict
+	"""
 	selected_race = request.form.get("race")
 	all_skills = get_all_skills()
 	selected_race_obj = get_selected_races_obj(selected_race)
@@ -167,7 +216,8 @@ def get_character():
 					"CHA": get_ability_modifier_str(request.form.get("CHA"))
 				},
 				"Alignment": request.form.get("alignment"),
-				"Speed": selected_race_obj["speed"]
+				"Speed": selected_race_obj["speed"],
+				"Languages": [c["name"] for c in selected_race_obj["languages"]]
 			}
 	
 	# define skills
@@ -188,6 +238,10 @@ def get_character():
 
 @app.route("/", methods=["GET", "POST"])
 def home():
+	"""
+	Main program for web app
+	:return:
+	"""
 	# Get options from DB
 	races = sorted([r["name"] for r in db[RACES_TABLE].find({}, {"_id": 0, "name": 1})])
 	classes = sorted([c["name"] for c in db[CLASSES_TABLE].find({}, {"_id": 0, "name": 1})])
@@ -219,30 +273,22 @@ def home():
 
 	# Get user selection
 	if request.method == "POST":
-		abilities = {
-			"STR": request.form.get("STR") or 3,
-			"DEX": request.form.get("DEX") or 3,
-			"CON": request.form.get("CON") or 3,
-			"INT": request.form.get("INT") or 3,
-			"WIS": request.form.get("WIS") or 3,
-			"CHA": request.form.get("CHA") or 3
-		}
-		lvl=request.form.get("LVL") or 1
-		characterName = request.form.get("CharacterName") or "Unknown"
-		playerName = request.form.get("PlayerName") or "Unknown"
-		selected_class = request.form.get("class")
-		selected_race = request.form.get("race")
+		#get data from character
+		character = get_character()
+		abilities = character["Abilities"]
+		lvl = character["Level"]
+		characterName = character["Name"]
+		playerName = character["PlayerName"]
+		selected_class = character["Class"]
+		selected_race = character["Race"]
+		
+		# Get data from form
 		subclasses = ["None"] + [c["name"] for c in db[SUBCLASSES_TABLE].find({"class.name":selected_class}, {"_id": 0, "name": 1})]
 		prof_choices, prof_choice_count = get_class_proficiency_options(selected_class)
-		print(f"Choose {prof_choice_count}")
-		for c in prof_choices:
-			print(f"\t{c}")
 		selected_profs = request.form.getlist("proficiencies")
+		
+		
 		if "Generate Abilities" in request.form: # Generate Random Abilities button was pressed
-			character = get_character()
-			lvl = character["Level"]
-			characterName = character["Name"]
-			playerName = character["PlayerName"]
 			abilities = {
 				"STR": roll_ability_score(),
 				"DEX": roll_ability_score(),
@@ -251,20 +297,8 @@ def home():
 				"WIS": roll_ability_score(),
 				"CHA": roll_ability_score()
 				}
-			selected_race=character["Race"]
-			selected_class=character["Class"]
-			selected_subclass=character["Subclass"]
-			selected_background=character["Background"]
-			selected_alignment=character["Alignment"]
 			character = json.dumps(character, indent=2)
 		if "Create Character" in request.form: # Create Character button was pressed
-			character = get_character()
-			lvl = character["Level"]
-			abilities = character["Abilities"]
-			selected_race=character["Race"]
-			selected_class=character["Class"]
-			selected_background=character["Background"]
-			selected_alignment=character["Alignment"]
 			character = json.dumps(character, indent=2)
 		
 		if "Standard Abilities" in request.form:
@@ -272,7 +306,7 @@ def home():
 				abilities = standard_abilities[selected_class]
 			
 		if "Save PDF" in request.form: # Save PDF button was pressed
-			character = get_character()
+			# Configure PDF
 			template = "/res/DnD_2024_Character-Sheet R3.pdf"
 			reader = PdfReader(template)
 			writer = PdfWriter()
@@ -284,6 +318,8 @@ def home():
 			name_field = character["Name"]
 			if character["PlayerName"] != "Unknown" and character["PlayerName"] is not None:
 				name_field = name_field + " (" + character["PlayerName"] + ")"
+			
+			# Configure data for inserting into PDF
 			field_data = {
 				"CharacterName_Field": name_field,
 				"Race_Field": character["Race"],
@@ -311,7 +347,7 @@ def home():
 				
 				#"Traits_Field": str(character["Trait"]),
 				# "Languages_Field": ", ".join(character["Languages"]),
-				"Languages_Field": "Common",
+				"Languages_Field": list_to_string(character["Languages"]),
 				
 				#STR
 				"Athletics_Field": character["Skills"]["Athletics"],
@@ -347,12 +383,6 @@ def home():
 			tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
 			with open(tmp.name, "wb") as f:
 				writer.write(f)
-
-			selected_race=character["Race"]
-			selected_class=character["Class"]
-			selected_background=character["Background"]
-			selected_alignment=character["Alignment"]
-			character = json.dumps(character, indent=2)
 			
 			# export pdf
 			return send_file(tmp.name, as_attachment=True, download_name="character.pdf")

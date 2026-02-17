@@ -2,6 +2,15 @@ from pymongo import MongoClient
 import json
 
 
+# Define Database tables to use
+RACES_TABLE = "2014-races"
+SKILLS_TABLE = "2014-skills"
+CLASSES_TABLE = "2014-classes"
+PROFICIENCIES_TABLE = "2014-proficiencies"
+BACKGROUNDS_TABLE = "2024-backgrounds"
+ALIGNMENTS_TABLE = "2024-alignments"
+SUBCLASSES_TABLE = "2024-subclasses"
+
 def get_ability_modifier_str(ability):
 	"""Calculate ability modifier and return it as a string"""
 	try:
@@ -98,6 +107,20 @@ def get_all_races():
 	races = db["2014-races"].find({}, {"_id": 0})
 	return races
 
+
+def get_selected_races_obj(race):
+	"""
+	Get database information for selected race
+	:param race: Character Race
+	:return: Table Object for selected race
+	"""
+	race = db[RACES_TABLE].find({"name":race}, {"_id": 0})
+	try:
+		race = race[0]
+	except Exception as e:
+		return None
+	return race
+
 client = MongoClient("mongodb://localhost:27017")
 db = client["5e-database"]
 
@@ -150,8 +173,15 @@ standard_abilities = {
 	"Warlock":      {"STR": 8,  "DEX": 14, "CON": 13, "INT": 12, "WIS": 10, "CHA": 15},
 	"Wizard":       {"STR": 8,  "DEX": 12, "CON": 13, "INT": 15, "WIS": 14, "CHA": 10}
 }
-
-for c in get_all_races():
+"""
+all_races = get_all_races()
+for c in all_races:
 	print(f"'{c["name"]}' : {c["speed"]},".replace("'", '"'))
+"""
+elf = get_selected_races_obj("Elf")
+print(elf)
+
+#for i in elf["languages"]
+print([c["name"] for c in elf["languages"]])
 
 client.close()
