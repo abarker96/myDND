@@ -1,161 +1,145 @@
 {% extends "base.html" %}
 {% block title %}Level Up {{ char.Name }} — The Tome{% endblock %}
-
 {% block extra_head %}
 <style>
-  .levelup-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-    margin-top: 1rem;
-  }
-
-  @media (max-width: 700px) {
-    .levelup-layout { grid-template-columns: 1fr; }
-  }
-
-  .diff-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid rgba(61,47,14,0.4);
-    font-family: 'Crimson Text', serif; font-size: 1rem;
-  }
-  .diff-row:last-child { border-bottom: none; }
-
-  .diff-label { color: var(--text-dim); }
-  .diff-vals { display: flex; align-items: center; gap: 0.75rem; }
-  .diff-old { color: var(--text-dim); text-decoration: line-through; font-size: 0.9rem; }
-  .diff-arrow { color: var(--border); font-size: 0.8rem; }
-  .diff-new { color: var(--gold-light); font-family: 'Cinzel', serif; font-size: 1rem; }
-  .diff-new.improved { color: #50e880; }
-
-  .new-features-list {
-    display: flex; flex-direction: column; gap: 0.5rem;
-  }
-
-  .feature-item {
-    background: rgba(200,151,58,0.05);
-    border: 1px solid rgba(200,151,58,0.2);
-    border-radius: 3px;
-    padding: 0.6rem 0.85rem;
-    font-family: 'Crimson Text', serif;
-    color: var(--parchment);
-    font-size: 0.95rem;
-  }
-
-  .feature-item .fi-level {
-    font-family: 'Cinzel', serif;
-    font-size: 0.65rem;
-    color: var(--gold);
-    display: block;
-    margin-bottom: 0.15rem;
-    letter-spacing: 0.1em;
-  }
-
-  .hp-roll {
-    background: rgba(80,232,128,0.05);
-    border: 1px solid rgba(80,232,128,0.2);
-    border-radius: 4px;
-    padding: 1rem;
-    text-align: center;
-    margin: 1rem 0;
-  }
-
-  .hp-roll .roll-label {
-    font-family: 'Cinzel', serif;
-    font-size: 0.7rem;
-    letter-spacing: 0.15em;
-    color: var(--text-dim);
-    margin-bottom: 0.4rem;
-  }
-
-  .hp-roll .roll-val {
-    font-family: 'Cinzel Decorative', serif;
-    font-size: 2.5rem;
-    color: #50e880;
-    text-shadow: 0 0 20px rgba(80,232,128,0.4);
-    line-height: 1;
-  }
-
-  .hp-roll .roll-breakdown {
-    font-family: 'Crimson Text', serif;
-    font-style: italic;
-    color: var(--text-dim);
-    font-size: 0.9rem;
-    margin-top: 0.25rem;
-  }
-
-  .confirm-actions {
-    display: flex; gap: 1rem; justify-content: center;
-    margin-top: 2rem;
-  }
+.levelup-layout{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-top:1rem}
+@media(max-width:700px){.levelup-layout{grid-template-columns:1fr}}
+.diff-row{display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid rgba(61,47,14,0.4);font-family:'Crimson Text',serif;font-size:1rem}
+.diff-row:last-child{border-bottom:none}
+.diff-label{color:var(--text-dim)}
+.diff-vals{display:flex;align-items:center;gap:.75rem}
+.diff-old{color:var(--text-dim);text-decoration:line-through;font-size:.9rem}
+.diff-arrow{color:var(--border);font-size:.8rem}
+.diff-new{color:var(--gold-light);font-family:'Cinzel',serif;font-size:1rem}
+.diff-new.improved{color:#50e880}
+.feature-item{background:rgba(200,151,58,0.05);border:1px solid rgba(200,151,58,0.2);border-radius:3px;padding:.6rem .85rem;font-family:'Crimson Text',serif;color:var(--parchment);font-size:.95rem;margin-bottom:.4rem}
+.feature-item .fi-level{font-family:'Cinzel',serif;font-size:.62rem;color:var(--gold);display:block;margin-bottom:.1rem;letter-spacing:.1em}
+/* HP method selector */
+.hp-methods{display:flex;flex-direction:column;gap:.75rem;margin:1rem 0}
+.hp-method{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:4px;padding:1rem;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
+.hp-method:has(input:checked),.hp-method.selected{border-color:var(--gold);background:rgba(200,151,58,0.07)}
+.hp-method-label{display:flex;align-items:center;gap:.75rem;cursor:pointer;font-family:'Crimson Text',serif;font-size:1.05rem;color:var(--parchment)}
+.hp-method input[type=radio]{accent-color:var(--gold);width:16px;height:16px;flex-shrink:0;cursor:pointer}
+.hp-method-title{font-family:'Cinzel',serif;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:.15rem}
+.hp-method-desc{color:var(--text-dim);font-style:italic;font-size:.9rem}
+.hp-preview{font-family:'Cinzel Decorative',serif;font-size:1.5rem;color:#50e880;text-shadow:0 0 15px rgba(80,232,128,0.4);margin-top:.5rem;text-align:center}
+.manual-input{display:none;margin-top:.75rem}
+.manual-input.visible{display:block}
+.confirm-actions{display:flex;gap:1rem;justify-content:center;margin-top:2rem}
 </style>
 {% endblock %}
-
 {% block content %}
 <div class="page-heading">
   <h1>⬆ Level Up</h1>
-  <p>{{ char.Name }} advances from level {{ char.Level }} to level {{ new_level }}</p>
+  <p>{{ char.Name }} advances from level {{ char.Level }} to {{ new_level }}</p>
   <div class="divider"><div class="divider-gem"></div></div>
 </div>
-
+<form method="POST">
 <div class="levelup-layout">
-
-  <!-- Left: Stat changes -->
+  <!-- Left: stat changes + HP method -->
   <div>
-    <div class="card">
+    <div class="card" style="margin-bottom:1.25rem">
       <div class="section-title">Stat Changes</div>
-
       {% for row in changes %}
       <div class="diff-row">
         <span class="diff-label">{{ row.label }}</span>
         <div class="diff-vals">
           <span class="diff-old">{{ row.old }}</span>
           <span class="diff-arrow">→</span>
-          <span class="diff-new {{ 'improved' if row.old != row.new else '' }}">{{ row.new }}</span>
+          <span class="diff-new {{ 'improved' if row.old|string != row.new|string }}">{{ row.new }}</span>
         </div>
       </div>
       {% endfor %}
     </div>
 
-    <div class="hp-roll" style="margin-top:1.25rem">
-      <div class="roll-label">HP Gained (average)</div>
-      <div class="roll-val">+{{ hp_gained }}</div>
-      <div class="roll-breakdown">
-        {{ char.HitDice }} average + CON modifier ({{ con_mod }})
-        = {{ hp_gained }} · New total: {{ new_max_hp }}
+    <div class="card">
+      <div class="section-title">Choose HP Method</div>
+      <div class="hp-methods">
+
+        <div class="hp-method" id="method-avg">
+          <label class="hp-method-label">
+            <input type="radio" name="hp_method" value="avg" checked onchange="updateHP(this)">
+            <div>
+              <span class="hp-method-title">Average (Recommended)</span>
+              <span class="hp-method-desc">Take the average roll of {{ hit_die // 2 + 1 }} {{ con_mod }} CON</span>
+            </div>
+          </label>
+          <div class="hp-preview">+{{ hp_avg }} HP → {{ hp_avg_total }}</div>
+        </div>
+
+        <div class="hp-method" id="method-roll">
+          <label class="hp-method-label">
+            <input type="radio" name="hp_method" value="roll" onchange="updateHP(this)">
+            <div>
+              <span class="hp-method-title">Roll the Dice</span>
+              <span class="hp-method-desc">Roll 1d{{ hit_die }} {{ con_mod }} CON — fate decides!</span>
+            </div>
+          </label>
+          <div id="roll-preview" class="hp-preview" style="color:var(--gold)">Click to roll…</div>
+          <button type="button" class="btn btn-ghost btn-sm" style="margin-top:.5rem" id="btn-preview-roll"
+                  onclick="previewRoll()">🎲 Preview Roll</button>
+        </div>
+
+        <div class="hp-method" id="method-manual">
+          <label class="hp-method-label">
+            <input type="radio" name="hp_method" value="manual" onchange="updateHP(this)">
+            <div>
+              <span class="hp-method-title">Enter Manually</span>
+              <span class="hp-method-desc">Type the HP gained from your physical dice roll</span>
+            </div>
+          </label>
+          <div class="manual-input" id="manual-input-wrap">
+            <label for="manual_hp" style="margin-top:.5rem">HP Gained (your roll result)</label>
+            <input type="number" id="manual_hp" name="manual_hp" min="1" max="{{ hit_die + 10 }}"
+                   value="{{ hp_avg }}" style="max-width:120px;text-align:center;font-family:'Cinzel',serif;font-size:1.3rem">
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
 
-  <!-- Right: New features -->
-  <div>
-    <div class="card">
-      <div class="section-title">New Features at Level {{ new_level }}</div>
-      {% if new_features %}
-      <div class="new-features-list">
-        {% for f in new_features %}
-        <div class="feature-item">
-          <span class="fi-level">Level {{ new_level }}</span>
-          {{ f }}
-        </div>
-        {% endfor %}
+  <!-- Right: new features -->
+  <div class="card">
+    <div class="section-title">New Features at Level {{ new_level }}</div>
+    {% if new_features %}
+      {% for f in new_features %}
+      <div class="feature-item">
+        <span class="fi-level">Level {{ new_level }}</span>{{ f }}
       </div>
-      {% else %}
+      {% endfor %}
+    {% else %}
       <p style="font-family:'Crimson Text',serif;font-style:italic;color:var(--text-dim)">
         No new class features at this level.
       </p>
-      {% endif %}
-    </div>
+    {% endif %}
   </div>
 </div>
 
 <div class="confirm-actions">
-  <a href="{{ url_for('character_detail', char_id=char._id) }}" class="btn btn-ghost">Cancel</a>
-  <form method="POST" action="{{ url_for('character_levelup', char_id=char._id) }}" style="display:inline">
-    <button type="submit" class="btn btn-gold" style="font-size:1rem;padding:0.75rem 2.5rem">
-      ✦ Confirm Level Up
-    </button>
-  </form>
+  <a href="{{ url_for('character_detail',char_id=char._id) }}" class="btn btn-ghost">Cancel</a>
+  <button type="submit" class="btn btn-gold" style="font-size:.95rem;padding:.75rem 2.5rem">✦ Confirm Level Up</button>
 </div>
+</form>
+<script>
+var HIT_DIE = {{ hit_die }};
+var CON_MOD = {{ con_mod }};
+var CUR_HP  = {{ char.MaxHP }};
+var HP_AVG_TOTAL = {{ hp_avg_total }};
+
+function updateHP(radio){
+  document.querySelectorAll('.hp-method').forEach(function(m){m.classList.remove('selected')});
+  radio.closest('.hp-method').classList.add('selected');
+  var mi = document.getElementById('manual-input-wrap');
+  mi.classList.toggle('visible', radio.value==='manual');
+}
+function previewRoll(){
+  var roll = Math.floor(Math.random()*HIT_DIE)+1;
+  var gained = Math.max(1, roll+CON_MOD);
+  var total  = CUR_HP + gained;
+  document.getElementById('roll-preview').textContent = '+'+gained+' HP → '+total+' (rolled '+roll+')';
+}
+// Init
+document.querySelector('input[name=hp_method]:checked').closest('.hp-method').classList.add('selected');
+</script>
 {% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}New Session — The Tome{% endblock %}
+{% block extra_head %}
+<style>
+.new-sess-wrap{max-width:500px;margin:2rem auto}
+.field-row{margin-bottom:1rem}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <h1>⚔ New Session</h1>
+  <p>You will be the Dungeon Master</p>
+  <div class="divider"><div class="divider-gem"></div></div>
+</div>
+<div class="new-sess-wrap">
+  <div class="card">
+    <form method="POST">
+      <div class="field-row">
+        <label for="name">Session Name</label>
+        <input type="text" id="name" name="name" placeholder="e.g. The Lost Mines of Phandelver" maxlength="80" required autofocus>
+      </div>
+      <div class="field-row">
+        <label for="map_id">Link a Map (optional)</label>
+        <select id="map_id" name="map_id">
+          <option value="">— No map —</option>
+          {% for m in maps %}
+          <option value="{{ m._id }}">{{ m.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.5rem">
+        <a href="{{ url_for('sessions.sessions_list') }}" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-gold">Create Session</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

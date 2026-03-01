@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Maps — The Tome{% endblock %}
+{% block extra_head %}
+<style>
+.maps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1.25rem;margin-top:1rem}
+.map-card{background:linear-gradient(160deg,#1e1708 0%,#120d04 100%);border:1px solid var(--border);border-radius:5px;padding:1.5rem;display:flex;flex-direction:column;gap:.75rem;transition:border-color .2s,transform .2s;animation:fadeIn .4s ease both}
+.map-card:hover{border-color:var(--gold);transform:translateY(-3px)}
+.map-name{font-family:'Cinzel',serif;font-size:1.1rem;color:var(--gold-light)}
+.map-meta{font-family:'Crimson Text',serif;font-style:italic;color:var(--text-dim);font-size:.92rem}
+.map-actions{display:flex;gap:.5rem;margin-top:auto;padding-top:.5rem;border-top:1px solid var(--border)}
+.map-actions .btn{flex:1;justify-content:center;font-size:.68rem;padding:.45rem}
+.empty-state{text-align:center;padding:5rem 2rem;font-family:'Crimson Text',serif;font-style:italic;color:var(--text-dim)}
+.empty-state .big-icon{font-size:4rem;margin-bottom:1rem;opacity:.4}
+.empty-state h3{font-family:'Cinzel',serif;font-style:normal;color:var(--border);font-size:1.1rem;margin-bottom:.5rem}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <h1>🗺 Maps</h1>
+  <p>Your collection of realms and dungeons</p>
+  <div class="divider"><div class="divider-gem"></div></div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem">
+  <a href="{{ url_for('maps.tiles_list') }}" class="btn btn-ghost btn-sm">🎨 Manage Tiles</a>
+  <a href="{{ url_for('maps.map_new') }}"    class="btn btn-primary">+ New Map</a>
+</div>
+{% if maps %}
+<div class="maps-grid">
+  {% for m in maps %}
+  <div class="map-card" style="animation-delay:{{ loop.index0*0.06 }}s">
+    <div class="map-name">{{ m.name }}</div>
+    <div class="map-meta">{{ m.width }}×{{ m.height }} grid{% if m.owner_id==uid %} · Owner{% else %} · Shared{% endif %}</div>
+    <div class="map-actions">
+      <a href="{{ url_for('maps.map_edit',map_id=m._id) }}" class="btn btn-gold">Edit</a>
+      <a href="{{ url_for('maps.map_export_png',map_id=m._id) }}" class="btn btn-ghost">📷 PNG</a>
+      <button class="btn btn-danger" onclick="deleteMap('{{ m._id }}','{{ m.name }}')">✕</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="big-icon">🗺</div>
+  <h3>No maps yet</h3>
+  <p>Create your first dungeon or world map to begin.</p>
+  <a href="{{ url_for('maps.map_new') }}" class="btn btn-primary" style="margin-top:1.5rem">Create First Map</a>
+</div>
+{% endif %}
+<script>
+function deleteMap(id,name){
+  if(!confirm('Delete map "'+name+'"? This cannot be undone.'))return;
+  fetch('/maps/'+id+'/delete',{method:'POST'})
+    .then(r=>r.json()).then(d=>{if(d.ok)location.reload();else alert('Error deleting map.')});
+}
+</script>
+{% endblock %}

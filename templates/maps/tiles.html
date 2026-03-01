@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Manage Tiles — The Tome{% endblock %}
+{% block extra_head %}
+<style>
+.tiles-layout{display:grid;grid-template-columns:1fr 340px;gap:1.5rem;margin-top:1rem}
+@media(max-width:800px){.tiles-layout{grid-template-columns:1fr}}
+.tile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.75rem}
+.tile-card{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:4px;padding:.85rem;text-align:center;position:relative;transition:border-color .2s}
+.tile-card:hover{border-color:var(--gold)}
+.tile-preview{width:48px;height:48px;border-radius:3px;margin:0 auto .5rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem;border:1px solid rgba(255,255,255,0.1);overflow:hidden}
+.tile-preview img{width:100%;height:100%;object-fit:cover}
+.tile-label{font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.08em;color:var(--text-dim)}
+.tile-category{font-family:'Crimson Text',serif;font-style:italic;color:var(--border);font-size:.78rem}
+.tile-actions{display:flex;gap:.25rem;justify-content:center;margin-top:.5rem}
+.builtin-badge{position:absolute;top:.3rem;right:.3rem;font-size:.55rem;font-family:'Cinzel',serif;letter-spacing:.05em;background:rgba(200,151,58,0.15);color:var(--gold);padding:.1rem .35rem;border-radius:2px}
+.cat-header{font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim);margin:.75rem 0 .4rem;grid-column:1/-1}
+.form-group{margin-bottom:.85rem}
+.color-row{display:flex;align-items:center;gap:.75rem}
+.color-row input[type=color]{width:44px;height:36px;padding:2px;cursor:pointer;background:none;border:1px solid var(--border);border-radius:3px}
+.img-preview{width:80px;height:80px;border:1px solid var(--border);border-radius:4px;object-fit:cover;display:none;margin-top:.5rem}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <h1>🎨 Tile Manager</h1>
+  <p>Create and manage custom map tiles</p>
+  <div class="divider"><div class="divider-gem"></div></div>
+</div>
+<div style="margin-bottom:1rem">
+  <a href="{{ url_for('maps.maps_list') }}" class="btn btn-ghost btn-sm">← Maps</a>
+</div>
+<div class="tiles-layout">
+  <!-- Left: tile list -->
+  <div>
+    {% set cats = ['terrain','structure','special','utility'] %}
+    {% for cat in cats %}
+      {% set cat_tiles = tiles|selectattr('category','equalto',cat)|list %}
+      {% if cat_tiles %}
+      <div class="section-title" style="margin-bottom:.75rem">{{ cat|title }}</div>
+      <div class="tile-grid" style="margin-bottom:1.5rem">
+        {% for t in cat_tiles %}
+        <div class="tile-card" id="tc-{{ t.id }}">
+          {% if not t.get('custom') %}<span class="builtin-badge">built-in</span>{% endif %}
+          <div class="tile-preview" style="background:{{ t.color if t.color != 'transparent' else '#222' }}">
+            {% if t.get('image_data') %}
+              <img src="{{ t.image_data }}" alt="{{ t.label }}">
+            {% else %}
+              {{ t.icon }}
+            {% endif %}
+          </div>
+          <div class="tile-label">{{ t.label }}</div>
+          <div class="tile-category">{{ t.category }}</div>
+          {% if t.get('custom') %}
+          <div class="tile-actions">
+            <button type="button" class="btn btn-ghost btn-sm" style="font-size:.6rem;padding:.25rem .5rem"
+                    onclick="editTile('{{ t._id }}','{{ t.label }}','{{ t.color }}','{{ t.icon }}','{{ t.category }}')">Edit</button>
+            <button type="button" class="btn btn-danger btn-sm" style="font-size:.6rem;padding:.25rem .5rem"
+                    onclick="deleteTile('{{ t._id }}','{{ t.label }}')">✕</button>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <!-- Right: create/edit form -->
+  <div>
+    <div class="card" style="position:sticky;top:80px">
+      <div class="section-title" id="form-title">New Custom Tile</div>
+      <form method="POST" action="{{ url_for('maps.tile_save') }}" enctype="multipart/form-data">
+        <input type="hidden" name="tile_id" id="f-tile-id">
+        <div class="form-group">
+          <label for="f-label">Tile Name</label>
+          <input type="text" id="f-label" name="label" placeholder="e.g. Lava Pool" maxlength="40" required>
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select name="category" id="f-category">
+            <option value="terrain">Terrain</option>
+            <option value="structure">Structure</option>
+            <option value="special">Special</option>
+            <option value="utility">Utility</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Color (fallback)</label>
+          <div class="color-row">
+            <input type="color" name="color" id="f-color" value="#4a6a4a">
+            <input type="text" id="f-color-text" value="#4a6a4a" style="max-width:100px"
+                   oninput="document.getElementById('f-color').value=this.value">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="f-icon">Emoji Icon (optional)</label>
+          <input type="text" id="f-icon" name="icon" placeholder="e.g. 🌋" maxlength="4" style="max-width:80px;font-size:1.4rem;text-align:center">
+        </div>
+        <div class="form-group">
+          <label for="f-image">Tile Image (optional, replaces color/icon)</label>
+          <input type="file" id="f-image" name="image" accept="image/*" style="font-family:'Crimson Text',serif;color:var(--text-dim)" onchange="previewImg(this)">
+          <img id="img-preview" class="img-preview" alt="Preview">
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <button type="submit" class="btn btn-gold">💾 Save Tile</button>
+          <button type="button" class="btn btn-ghost" onclick="resetForm()">Reset</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+document.getElementById('f-color').addEventListener('input',function(){
+  document.getElementById('f-color-text').value=this.value;
+});
+function previewImg(input){
+  var preview=document.getElementById('img-preview');
+  if(input.files&&input.files[0]){
+    var r=new FileReader();
+    r.onload=function(e){preview.src=e.target.result;preview.style.display='block'};
+    r.readAsDataURL(input.files[0]);
+  }
+}
+function editTile(id,label,color,icon,category){
+  document.getElementById('form-title').textContent='Edit Tile';
+  document.getElementById('f-tile-id').value=id;
+  document.getElementById('f-label').value=label;
+  document.getElementById('f-color').value=color||'#888888';
+  document.getElementById('f-color-text').value=color||'#888888';
+  document.getElementById('f-icon').value=icon;
+  document.getElementById('f-category').value=category;
+  document.querySelector('.card').scrollIntoView({behavior:'smooth'});
+}
+function resetForm(){
+  document.getElementById('form-title').textContent='New Custom Tile';
+  document.getElementById('f-tile-id').value='';
+  document.getElementById('f-label').value='';
+  document.getElementById('f-color').value='#4a6a4a';
+  document.getElementById('f-color-text').value='#4a6a4a';
+  document.getElementById('f-icon').value='';
+  document.getElementById('img-preview').style.display='none';
+}
+function deleteTile(id,name){
+  if(!confirm('Delete tile "'+name+'"?'))return;
+  fetch('/maps/tiles/'+id+'/delete',{method:'POST'})
+    .then(r=>r.json()).then(d=>{if(d.ok)location.reload();else alert('Error.')});
+}
+</script>
+{% endblock %}

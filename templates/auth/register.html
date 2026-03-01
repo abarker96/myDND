@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Register — The Tome{% endblock %}
+{% block extra_head %}
+<style>
+.auth-wrap{max-width:420px;margin:4rem auto;padding:0 1rem}
+.auth-wrap .page-heading{padding:2rem 0 1.5rem}
+.auth-footer{text-align:center;margin-top:1.25rem;font-family:'Crimson Text',serif;font-style:italic;color:var(--text-dim)}
+.auth-footer a{color:var(--gold);text-decoration:none}
+.auth-footer a:hover{color:var(--gold-light)}
+.field-row{margin-bottom:1rem}
+.hint{font-family:'Crimson Text',serif;font-style:italic;color:var(--text-dim);font-size:.85rem;margin-top:.25rem}
+</style>
+{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="page-heading">
+    <h1>📜 Join the Tome</h1>
+    <p>Create your account</p>
+    <div class="divider"><div class="divider-gem"></div></div>
+  </div>
+  <div class="card">
+    <form method="POST">
+      <div class="field-row">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" autocomplete="username" autofocus
+               value="{{ request.form.get('username','') }}" minlength="3" maxlength="30">
+        <p class="hint">3–30 characters</p>
+      </div>
+      <div class="field-row">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="new-password" minlength="6">
+        <p class="hint">At least 6 characters</p>
+      </div>
+      <div class="field-row">
+        <label for="confirm">Confirm Password</label>
+        <input type="password" id="confirm" name="confirm" autocomplete="new-password">
+      </div>
+      <div style="text-align:right;margin-top:1.5rem">
+        <button type="submit" class="btn btn-gold" style="padding:.65rem 2rem">Create Account</button>
+      </div>
+    </form>
+  </div>
+  <p class="auth-footer">Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a></p>
+</div>
+{% endblock %}

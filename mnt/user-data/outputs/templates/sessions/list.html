@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Sessions — The Tome{% endblock %}
+{% block extra_head %}
+<style>
+.sessions-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;margin-top:1rem}
+.sess-card{background:linear-gradient(160deg,#1e1708,#120d04);border:1px solid var(--border);border-radius:5px;padding:1.5rem;display:flex;flex-direction:column;gap:.75rem;transition:border-color .2s,transform .2s;animation:fadeIn .4s ease both}
+.sess-card:hover{border-color:var(--gold);transform:translateY(-3px)}
+.sess-name{font-family:'Cinzel',serif;font-size:1.1rem;color:var(--gold-light)}
+.sess-meta{font-family:'Crimson Text',serif;font-style:italic;color:var(--text-dim);font-size:.92rem}
+.sess-actions{display:flex;gap:.5rem;margin-top:auto;padding-top:.5rem;border-top:1px solid var(--border)}
+.sess-actions .btn{flex:1;justify-content:center;font-size:.68rem;padding:.45rem}
+.dm-badge{background:rgba(200,151,58,0.15);border:1px solid rgba(200,151,58,0.3);color:var(--gold);font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.1em;padding:.15rem .5rem;border-radius:2px}
+.player-badge{background:rgba(68,136,255,0.15);border:1px solid rgba(68,136,255,0.3);color:#80a8e0;font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.1em;padding:.15rem .5rem;border-radius:2px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.invited-section{margin-top:1.5rem}
+.invited-card{background:rgba(40,60,100,0.2);border:1px solid #2d4a6b;border-radius:4px;padding:1rem;display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem}
+.invited-name{font-family:'Cinzel',serif;font-size:.9rem;color:#80a8e0}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <h1>⚔ Sessions</h1>
+  <p>Your adventures and campaigns</p>
+  <div class="divider"><div class="divider-gem"></div></div>
+</div>
+<div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+  <a href="{{ url_for('sessions.session_new') }}" class="btn btn-primary">+ New Session</a>
+</div>
+
+{% if sessions %}
+<div class="sessions-grid">
+  {% for s in sessions %}
+  <div class="sess-card" style="animation-delay:{{ loop.index0*0.06 }}s">
+    <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+      <div class="sess-name">{{ s.name }}</div>
+      {% if s.dm_id==uid %}<span class="dm-badge">DM</span>
+      {% else %}<span class="player-badge">Player</span>{% endif %}
+    </div>
+    <div class="sess-meta">
+      {{ s.players|length }} player{{ 's' if s.players|length!=1 }}
+      {% if s.map_id %} · Map linked{% endif %}
+    </div>
+    <div class="sess-actions">
+      <a href="{{ url_for('sessions.session_view',session_id=s._id) }}" class="btn btn-gold">Enter</a>
+      {% if s.dm_id==uid %}
+      <button class="btn btn-danger" onclick="deleteSess('{{ s._id }}','{{ s.name }}')">✕</button>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div style="text-align:center;padding:5rem 2rem;font-family:'Crimson Text',serif;font-style:italic;color:var(--text-dim)">
+  <div style="font-size:4rem;margin-bottom:1rem;opacity:.4">⚔</div>
+  <h3 style="font-family:'Cinzel',serif;color:var(--border);margin-bottom:.5rem">No sessions yet</h3>
+  <p>Create a session to start a campaign or join one when invited.</p>
+  <a href="{{ url_for('sessions.session_new') }}" class="btn btn-primary" style="margin-top:1.5rem">Create Session</a>
+</div>
+{% endif %}
+
+<script>
+function deleteSess(id,name){
+  if(!confirm('Delete session "'+name+'"?'))return;
+  fetch('/sessions/'+id+'/delete',{method:'POST'})
+    .then(r=>r.json()).then(d=>{if(d.ok)location.reload();else alert('Error.')});
+}
+</script>
+{% endblock %}
