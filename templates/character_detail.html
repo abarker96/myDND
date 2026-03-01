@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}{{ char.Name }} — The Tome{% endblock %}
+
+{% block extra_head %}
+<style>
+  .char-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    flex-wrap: wrap; gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .char-title h2 {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    color: var(--gold);
+    text-shadow: 0 0 30px var(--glow);
+  }
+
+  .char-title p {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 1.1rem;
+    margin-top: 0.25rem;
+  }
+
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .detail-grid .card { padding: 1.25rem; }
+
+  .ability-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  @media (max-width: 600px) {
+    .ability-row { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .ability-box {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+  }
+
+  .ability-box .ab-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .ability-box .ab-score {
+    font-family: 'Cinzel', serif;
+    font-size: 1.6rem;
+    color: var(--parchment);
+    line-height: 1.1;
+  }
+
+  .ability-box .ab-mod {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: var(--gold);
+  }
+
+  .stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(61,47,14,0.4);
+    font-family: 'Crimson Text', serif;
+    font-size: 1rem;
+  }
+
+  .stat-row:last-child { border-bottom: none; }
+  .stat-row .stat-label { color: var(--text-dim); }
+  .stat-row .stat-val { color: var(--parchment); font-weight: 600; }
+  .stat-row .stat-val.good { color: var(--gold-light); }
+
+  .skills-two-col {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.1rem 1rem;
+  }
+
+  .skill-row {
+    display: flex; justify-content: space-between;
+    font-family: 'Crimson Text', serif; font-size: 0.95rem;
+    padding: 0.2rem 0; color: var(--text-dim);
+  }
+
+  .skill-row .sk-val { color: var(--gold); font-family: 'Cinzel', serif; font-size: 0.85rem; }
+
+  .char-actions-bar {
+    display: flex; gap: 0.75rem; flex-wrap: wrap;
+    margin-bottom: 2rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="char-header">
+  <div class="char-title">
+    <h2>{{ char.Name }}</h2>
+    <p>
+      Level {{ char.Level }}
+      {{ char.Race }} {{ char.Class }}{% if char.Subclass %} ({{ char.Subclass }}){% endif %}
+      · {{ char.Background }}
+      {% if char.Alignment %} · {{ char.Alignment }}{% endif %}
+    </p>
+  </div>
+  <div class="char-actions-bar">
+    <a href="{{ url_for('characters_list') }}" class="btn btn-ghost">← Party</a>
+    <a href="{{ url_for('character_levelup', char_id=char._id) }}" class="btn btn-gold">Level Up ({{ char.Level }} → {{ char.Level + 1 }})</a>
+  </div>
+</div>
+
+<!-- Ability scores -->
+<div class="section-title">Ability Scores</div>
+<div class="ability-row">
+  {% for key in ['STR','DEX','CON','INT','WIS','CHA'] %}
+  <div class="ability-box">
+    <div class="ab-label">{{ key }}</div>
+    <div class="ab-score">{{ char.Abilities[key] }}</div>
+    <div class="ab-mod">{{ char.Modifiers[key] }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="detail-grid">
+
+  <!-- Combat -->
+  <div class="card">
+    <div class="section-title">Combat</div>
+    <div class="stat-row"><span class="stat-label">Max HP</span>      <span class="stat-val good">{{ char.MaxHP }}</span></div>
+    <div class="stat-row"><span class="stat-label">Armor Class</span> <span class="stat-val">{{ char.ArmorClass }}</span></div>
+    <div class="stat-row"><span class="stat-label">Initiative</span>  <span class="stat-val">{{ char.Initiative }}</span></div>
+    <div class="stat-row"><span class="stat-label">Speed</span>       <span class="stat-val">{{ char.Speed }} ft</span></div>
+    <div class="stat-row"><span class="stat-label">Hit Dice</span>    <span class="stat-val">{{ char.Level }}{{ char.HitDice }}</span></div>
+    <div class="stat-row"><span class="stat-label">Prof. Bonus</span> <span class="stat-val good">{{ char.ProficiencyBonus }}</span></div>
+    <div class="stat-row"><span class="stat-label">Passive Perc.</span><span class="stat-val">{{ char.PassivePerception }}</span></div>
+  </div>
+
+  <!-- Saving throws -->
+  <div class="card">
+    <div class="section-title">Saving Throws</div>
+    {% for key in ['STR','DEX','CON','INT','WIS','CHA'] %}
+    <div class="stat-row">
+      <span class="stat-label">{{ key }}</span>
+      <span class="stat-val">{{ char.SavingThrows[key] }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Spellcasting (only if caster) -->
+  {% if char.SpellcastingAbility %}
+  <div class="card">
+    <div class="section-title">Spellcasting</div>
+    <div class="stat-row"><span class="stat-label">Ability</span>      <span class="stat-val good">{{ char.SpellcastingAbility }}</span></div>
+    <div class="stat-row"><span class="stat-label">Spell Save DC</span><span class="stat-val">{{ char.SpellSaveDC }}</span></div>
+    <div class="stat-row"><span class="stat-label">Spell Attack</span> <span class="stat-val">{{ char.SpellAtkBonus }}</span></div>
+  </div>
+  {% endif %}
+
+  <!-- Languages & Profs -->
+  <div class="card">
+    <div class="section-title">Proficiencies</div>
+    {% if char.Languages %}
+    <div class="stat-row">
+      <span class="stat-label">Languages</span>
+      <span class="stat-val" style="text-align:right;font-size:0.9rem">{{ char.Languages | join(', ') }}</span>
+    </div>
+    {% endif %}
+    {% if char.WeaponProficiencies %}
+    <div class="stat-row">
+      <span class="stat-label">Weapons</span>
+      <span class="stat-val" style="text-align:right;font-size:0.85rem;max-width:65%">{{ char.WeaponProficiencies }}</span>
+    </div>
+    {% endif %}
+    {% if char.ToolProficiencies %}
+    <div class="stat-row">
+      <span class="stat-label">Tools</span>
+      <span class="stat-val" style="text-align:right;font-size:0.85rem">{{ char.ToolProficiencies }}</span>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Skills -->
+<div class="card" style="margin-bottom:1.25rem">
+  <div class="section-title">Skills</div>
+  <div class="skills-two-col">
+    {% for skill, val in char.Skills.items() | sort %}
+    <div class="skill-row">
+      <span>{{ skill }}</span>
+      <span class="sk-val">{{ val }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Class Features -->
+{% if char.ClassFeatures %}
+<div class="card" style="margin-bottom:1.25rem">
+  <div class="section-title">Class Features</div>
+  <pre style="font-family:'Crimson Text',serif;font-size:0.95rem;color:var(--text-dim);white-space:pre-wrap;line-height:1.6">{{ char.ClassFeatures }}</pre>
+</div>
+{% endif %}
+
+{% endblock %}

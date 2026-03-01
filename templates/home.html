@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}The Tome — D&D 5E Companion{% endblock %}
+
+{% block extra_head %}
+<style>
+  .hero {
+    text-align: center;
+    padding: 5rem 1rem 3rem;
+    position: relative;
+  }
+
+  .hero-eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--crimson);
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.1s;
+  }
+
+  .hero h1 {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(2.2rem, 7vw, 5rem);
+    line-height: 1.05;
+    color: var(--gold);
+    text-shadow: 0 0 60px rgba(200,151,58,0.4), 0 4px 8px rgba(0,0,0,0.9);
+    opacity: 0;
+    animation: fadeUp 0.7s ease forwards 0.25s;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    color: var(--parchment);
+    display: block;
+    font-size: 0.55em;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-shadow: none;
+    opacity: 0.7;
+    margin-top: 0.3rem;
+  }
+
+  .hero-sub {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    font-size: 1.2rem;
+    color: var(--text-dim);
+    max-width: 500px;
+    margin: 1.5rem auto 0;
+    line-height: 1.6;
+    opacity: 0;
+    animation: fadeUp 0.7s ease forwards 0.4s;
+  }
+
+  /* ── Feature cards ─────────────────────────────────────────────── */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+    margin-top: 4rem;
+  }
+
+  .feature-card {
+    background: linear-gradient(160deg, #1e1708 0%, #120d04 100%);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2.5rem 2rem;
+    text-decoration: none;
+    color: inherit;
+    display: flex; flex-direction: column; align-items: center;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards;
+  }
+
+  .feature-card:nth-child(1) { animation-delay: 0.5s; }
+  .feature-card:nth-child(2) { animation-delay: 0.65s; }
+  .feature-card:nth-child(3) { animation-delay: 0.8s; }
+
+  .feature-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.7), 0 0 30px rgba(200,151,58,0.08);
+    border-color: var(--gold);
+  }
+
+  .feature-card:hover::before { opacity: 1; }
+
+  .feature-icon {
+    font-size: 3rem;
+    margin-bottom: 1.25rem;
+    filter: drop-shadow(0 0 12px rgba(200,151,58,0.3));
+    transition: transform 0.3s, filter 0.3s;
+  }
+
+  .feature-card:hover .feature-icon {
+    transform: scale(1.1) rotate(-3deg);
+    filter: drop-shadow(0 0 20px rgba(200,151,58,0.6));
+  }
+
+  .feature-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    color: var(--gold-light);
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.05em;
+  }
+
+  .feature-desc {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .feature-card .btn {
+    margin-top: 1.5rem;
+  }
+
+  /* ── Footer lore text ───────────────────────────────────────────── */
+  .lore-footer {
+    text-align: center;
+    padding: 4rem 1rem 1rem;
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    color: var(--border);
+    font-size: 0.9rem;
+    letter-spacing: 0.05em;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero">
+  <p class="hero-eyebrow">⚔ Dungeons &amp; Dragons 5th Edition ⚔</p>
+  <h1>
+    The Tome
+    <em>A D&amp;D 5E Companion</em>
+  </h1>
+  <p class="hero-sub">Forge your legend. Roll your fate. Chronicle your journey through the realms.</p>
+
+  <div class="divider" style="margin-top:2.5rem"><div class="divider-gem"></div></div>
+</div>
+
+<div class="feature-grid">
+
+  <a href="{{ url_for('character_builder') }}" class="feature-card">
+    <div class="feature-icon">📜</div>
+    <div class="feature-title">Character Builder</div>
+    <p class="feature-desc">Craft a new hero from the ground up — choose your race, class, background, and abilities.</p>
+    <span class="btn btn-primary">Begin</span>
+  </a>
+
+  <a href="{{ url_for('characters_list') }}" class="feature-card">
+    <div class="feature-icon">⚔️</div>
+    <div class="feature-title">My Characters</div>
+    <p class="feature-desc">View your saved adventurers, track their progress, and level them up as they grow in power.</p>
+    <span class="btn btn-gold">View Party</span>
+  </a>
+
+  <a href="{{ url_for('dice_roller') }}" class="feature-card">
+    <div class="feature-icon">🎲</div>
+    <div class="feature-title">Dice Roller</div>
+    <p class="feature-desc">Roll any combination of dice — d4 through d100 — and keep a log of every throw of fate.</p>
+    <span class="btn btn-ghost">Roll Dice</span>
+  </a>
+
+</div>
+
+<p class="lore-footer">
+  "Not all those who wander are lost — but it helps to have a character sheet."
+</p>
+{% endblock %}

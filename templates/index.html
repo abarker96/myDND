@@ -1,144 +1,288 @@
+{% extends "base.html" %}
+{% block title %}Character Builder — The Tome{% endblock %}
 
-<!DOCTYPE html>
-<html lang="en">
+{% block extra_head %}
+<style>
+  .builder-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
 
-<head>
-	<title>D&D Character Generator</title>
-	<link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-	<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-	<h1>D&D 5e Character Creator</h1>
+  @media (max-width: 800px) {
+    .builder-grid { grid-template-columns: 1fr; }
+  }
 
-	<div class="container">
-		<form method="POST">
+  .full-width { grid-column: 1 / -1; }
 
-		  <label>Player Name:</label>
-		  <input type="text" id="PlayerName" name="PlayerName"value="{{PlayerName}}">
+  /* ── Ability score grid ─────────────────────────────────────── */
+  .ability-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
 
-			<br><br>
+  .ability-field { text-align: center; }
 
-		  <label>Character Name:</label>
-		  <input type="text" id="CharacterName" name="CharacterName"value={{CharacterName}}>
+  .ability-field label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: var(--gold);
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+  }
 
-			<br><br>
+  .ability-field input {
+    text-align: center;
+    font-family: 'Cinzel', serif;
+    font-size: 1.3rem;
+    padding: 0.6rem 0.25rem;
+    color: var(--parchment);
+  }
 
-		  <label for="LVL">Level (1-12):</label>
-		  <input type="number" id="LVL" name="LVL" min="1" max="12" value={{LVL}} default=1>
+  /* ── Ability buttons row ───────────────────────────────────── */
+  .ability-btns {
+    display: flex; gap: 0.75rem; flex-wrap: wrap;
+    margin-top: 1rem;
+  }
 
-			<br><br>
+  /* ── Proficiency checkboxes ────────────────────────────────── */
+  .prof-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+  }
 
-		<label>Race:</label>
-		<select name="race">
-		{% for race in races %}
-			<option value="{{ race }}"
-				{% if selected_race == race %}selected{% endif %}>
-				{{ race }}
-			</option>
-		{% endfor %}
-		</select>
-		<br><br>
+  .prof-check {
+    display: flex; align-items: center; gap: 0.5rem;
+    font-family: 'Crimson Text', serif;
+    font-size: 1rem;
+    color: var(--parchment);
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+    border-radius: 3px;
+    transition: background 0.15s;
+  }
 
-		<label>Class:</label>
-		<select name="class" onchange="this.form.submit()">
-		{% for c in classes %}
-			<option value="{{ c }}"
-				{% if selected_class == c %}selected{% endif %}>
-				{{ c }}
-			</option>
-		{% endfor %}
-		</select>
-		<br><br>
+  .prof-check:hover { background: rgba(200,151,58,0.07); }
 
-		<label>Subclass:</label>
-		<select name="subclass">
-		{% for c in subclasses %}
-			<option value="{{ c }}"
-				{% if selected_subclass == c %}selected{% endif %}>
-				{{ c }}
-			</option>
-		{% endfor %}
-		</select>
-		<br><br>
+  .prof-check input[type=checkbox] {
+    width: 15px; height: 15px;
+    accent-color: var(--gold);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
 
-    {% if proficiency_choices %}
-    <label>
-        Choose {{ proficiency_count }} Proficiencies:
-    </label>
+  .prof-limit-note {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
 
-    {% for prof in proficiency_choices %}
-        <div>
-            <input type="checkbox"
-                   name="proficiencies"
-                   value="{{ prof }}"
-                   {% if prof in selected_profs %}checked{% endif %}>
-            {{ prof }}
+  /* ── Action buttons ────────────────────────────────────────── */
+  .action-bar {
+    display: flex; gap: 0.75rem; flex-wrap: wrap;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    margin-top: 1rem;
+  }
+
+  /* ── Character summary ─────────────────────────────────────── */
+  .char-summary pre {
+    font-family: 'Crimson Text', serif;
+    font-size: 0.9rem;
+    color: var(--parchment);
+    white-space: pre-wrap;
+    line-height: 1.6;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  /* ── Form field spacing ────────────────────────────────────── */
+  .field-row { margin-bottom: 1rem; }
+  .field-row:last-child { margin-bottom: 0; }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  @media (max-width: 500px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <h1>📜 Character Builder</h1>
+  <p>Forge your legend from race, class, and destiny</p>
+  <div class="divider"><div class="divider-gem"></div></div>
+</div>
+
+<form method="POST">
+
+  <div class="builder-grid">
+
+    <!-- ── Identity ──────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="section-title">Identity</div>
+
+      <div class="two-col">
+        <div class="field-row">
+          <label for="PlayerName">Player Name</label>
+          <input type="text" id="PlayerName" name="PlayerName" value="{{ PlayerName }}">
         </div>
-    {% endfor %}
+        <div class="field-row">
+          <label for="CharacterName">Character Name</label>
+          <input type="text" id="CharacterName" name="CharacterName" value="{{ CharacterName }}">
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="field-row">
+          <label for="LVL">Level (1–20)</label>
+          <input type="number" id="LVL" name="LVL" min="1" max="20" value="{{ LVL }}">
+        </div>
+        <div class="field-row">
+          <label for="alignment">Alignment</label>
+          <select id="alignment" name="alignment">
+            {% for a in alignments %}
+              <option value="{{ a }}" {% if selected_alignment == a %}selected{% endif %}>{{ a }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Race & Class ───────────────────────────────────────────── -->
+    <div class="card">
+      <div class="section-title">Race &amp; Class</div>
+
+      <div class="field-row">
+        <label for="race">Race</label>
+        <select id="race" name="race">
+          {% for race in races %}
+            <option value="{{ race }}" {% if selected_race == race %}selected{% endif %}>{{ race }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field-row">
+        <label for="class">Class</label>
+        <select id="class" name="class" onchange="this.form.submit()">
+          {% for c in classes %}
+            <option value="{{ c }}" {% if selected_class == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field-row">
+        <label for="subclass">Subclass</label>
+        <select id="subclass" name="subclass">
+          {% for c in subclasses %}
+            <option value="{{ c }}" {% if selected_subclass == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field-row">
+        <label for="background">Background</label>
+        <select id="background" name="background">
+          {% for bg in backgrounds %}
+            <option value="{{ bg }}" {% if selected_background == bg %}selected{% endif %}>{{ bg }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- ── Ability Scores ─────────────────────────────────────────── -->
+    <div class="card">
+      <div class="section-title">Ability Scores</div>
+
+      <div class="ability-grid">
+        <div class="ability-field">
+          <label for="STR">STR</label>
+          <input type="number" id="STR" name="STR" min="3" max="18" value="{{ STR }}">
+        </div>
+        <div class="ability-field">
+          <label for="DEX">DEX</label>
+          <input type="number" id="DEX" name="DEX" min="3" max="18" value="{{ DEX }}">
+        </div>
+        <div class="ability-field">
+          <label for="CON">CON</label>
+          <input type="number" id="CON" name="CON" min="3" max="18" value="{{ CON }}">
+        </div>
+        <div class="ability-field">
+          <label for="INT">INT</label>
+          <input type="number" id="INT" name="INT" min="3" max="18" value="{{ INT }}">
+        </div>
+        <div class="ability-field">
+          <label for="WIS">WIS</label>
+          <input type="number" id="WIS" name="WIS" min="3" max="18" value="{{ WIS }}">
+        </div>
+        <div class="ability-field">
+          <label for="CHA">CHA</label>
+          <input type="number" id="CHA" name="CHA" min="3" max="18" value="{{ CHA }}">
+        </div>
+      </div>
+
+      <div class="ability-btns">
+        <button type="submit" name="Generate Abilities" class="btn btn-ghost">🎲 Random</button>
+        <button type="submit" name="Standard Abilities" class="btn btn-ghost">📋 Standard Array</button>
+      </div>
+    </div>
+
+    <!-- ── Skill Proficiencies ────────────────────────────────────── -->
+    {% if proficiency_choices %}
+    <div class="card">
+      <div class="section-title">Skill Proficiencies</div>
+      <p class="prof-limit-note">Choose {{ proficiency_count }} from your class options:</p>
+      <div class="prof-grid">
+        {% for prof in proficiency_choices %}
+        <label class="prof-check">
+          <input type="checkbox"
+                 name="proficiencies"
+                 value="{{ prof }}"
+                 {% if prof in selected_profs %}checked{% endif %}
+                 onchange="enforceLimit(this, {{ proficiency_count }})">
+          {{ prof }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
     {% endif %}
 
+    <!-- ── Actions ───────────────────────────────────────────────── -->
+    <div class="card full-width">
+      <div class="section-title">Actions</div>
+      <div class="action-bar">
+        <button type="submit" name="Create Character" class="btn btn-ghost">👁 Preview</button>
+        <button type="submit" name="Save Character"   class="btn btn-gold">💾 Save to Party</button>
+        <button type="submit" name="Save PDF"         class="btn btn-primary">📄 Download PDF</button>
+      </div>
+    </div>
 
-		<label>Background:</label>
-		<select name="background">
-		{% for bg in backgrounds %}
-			<option value="{{ bg }}"
-				{% if selected_background == bg %}selected{% endif %}>
-				{{ bg }}
-			</option>
-		{% endfor %}
-		</select>
-		<br><br>
+  </div><!-- /builder-grid -->
 
-		<label>Alignment:</label>
-		<select name="alignment">
-		{% for a in alignments %}
-			<option value="{{ a }}"
-				{% if selected_alignment == a %}selected{% endif %}>
-				{{ a }}
-			</option>
-		{% endfor %}
-		</select>
-		<br><br>
+</form>
 
-		<label for="STR">STR (3-18):</label>
-		<input type="number" id="STR" name="STR" min="3" max="18" value={{STR}}>
+<!-- ── Character preview ──────────────────────────────────────────── -->
+{% if character_json %}
+<div class="card char-summary" style="margin-top:1.5rem">
+  <div class="section-title">Character Preview</div>
+  <pre>{{ character_json }}</pre>
+</div>
+{% endif %}
 
-		<label for="DEX">DEX (3-18):</label>
-		<input type="number" id="DEX" name="DEX" min="3" max="18" value={{DEX}}>
-
-			<br><br>
-
-		<label for="CON">CON (3-18):</label>
-		<input type="number" id="CON" name="CON" min="3" max="18" value={{CON}}>
-
-		<label for="INT">INT (3-18):</label>
-		<input type="number" id="INT" name="INT" min="3" max="18" value={{INT}}>
-
-			<br><br>
-
-		<label for="WIS">WIS (3-18):</label>
-		<input type="number" id="WIS" name="WIS" min="3" max="18" value={{WIS}}>
-
-		<label for="CHA">CHA (3-18):</label>
-		<input type="number" id="CHA" name="CHA" min="3" max="18" value={{CHA}}>
-
-			<br><br>
-			<br><br>
-
-		<button name="Generate Abilities">Generate Random Abilities</button>
-			<br><br>
-		<button name="Standard Abilities">Generate Standard Abilities</button>
-			<br><br>
-		<button name="Save PDF">Save PDF</button>
-			<br><br>
-		</form>
-
-		{% if character %}
-	    <div class="character-card">
-			<h2>Character Summary</h2>
-			<pre>{{ character }}</pre>
-		</div>
-		{% endif %}
-	</div>
-</body>
-</html>
+<script>
+  function enforceLimit(checkbox, max) {
+    const all = document.querySelectorAll('input[name="proficiencies"]:checked');
+    if (all.length > max) {
+      checkbox.checked = false;
+    }
+  }
+</script>
+{% endblock %}

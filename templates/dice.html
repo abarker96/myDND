@@ -1,0 +1,459 @@
+{% extends "base.html" %}
+{% block title %}Dice Roller — The Tome{% endblock %}
+
+{% block extra_head %}
+<style>
+  .dice-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 1rem;
+  }
+
+  @media (max-width: 700px) {
+    .dice-layout { grid-template-columns: 1fr; }
+  }
+
+  .dice-faces {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .die-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    padding: 0.75rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: rgba(0,0,0,0.3);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .die-btn:hover, .die-btn.selected {
+    background: rgba(200,151,58,0.12);
+    border-color: var(--gold);
+    color: var(--gold-light);
+    box-shadow: 0 0 12px rgba(200,151,58,0.2);
+  }
+
+  .die-btn .die-symbol {
+    display: block;
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .roll-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .count-row {
+    display: flex; gap: 0.5rem; align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .count-row label { margin: 0; white-space: nowrap; }
+
+  .count-btn {
+    width: 32px; height: 32px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 3px; cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.15s; flex-shrink: 0;
+  }
+
+  .count-btn:hover {
+    border-color: var(--gold); color: var(--gold-light);
+    background: rgba(200,151,58,0.1);
+  }
+
+  #die-count-display {
+    font-family: 'Cinzel', serif;
+    font-size: 1.2rem;
+    color: var(--gold);
+    min-width: 2rem; text-align: center;
+  }
+
+  .result-display {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1.5rem;
+    text-align: center;
+    min-height: 140px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    margin-bottom: 1rem;
+  }
+
+  #result-notation {
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  #result-total {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 4rem;
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(200,151,58,0.5);
+    line-height: 1;
+  }
+
+  #result-total.nat20 {
+    color: #50e880;
+    text-shadow: 0 0 40px rgba(80,232,128,0.6);
+    animation: pulse 0.6s ease;
+  }
+
+  #result-total.nat1 {
+    color: #e05050;
+    text-shadow: 0 0 40px rgba(224,80,80,0.6);
+    animation: shake 0.4s ease;
+  }
+
+  #result-breakdown {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    margin-top: 0.5rem;
+  }
+
+  #result-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    margin-top: 0.5rem;
+    font-weight: bold;
+  }
+
+  .history-list {
+    overflow-y: auto;
+    max-height: 500px;
+    display: flex; flex-direction: column; gap: 0.5rem;
+    padding-right: 0.25rem;
+  }
+
+  .history-list::-webkit-scrollbar { width: 4px; }
+  .history-list::-webkit-scrollbar-track { background: transparent; }
+  .history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .history-entry {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 0.6rem 0.85rem;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: 'Crimson Text', serif;
+  }
+
+  .h-notation {
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+  }
+
+  .h-rolls {
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    flex: 1;
+    padding: 0 0.75rem;
+  }
+
+  .h-total {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    color: var(--gold);
+    min-width: 2.5rem;
+    text-align: right;
+  }
+
+  .h-total.nat20 { color: #50e880; }
+  .h-total.nat1  { color: #e05050; }
+
+  .history-empty {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    color: var(--border);
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .presets {
+    display: flex; flex-wrap: wrap; gap: 0.4rem;
+    margin-bottom: 1rem;
+  }
+
+  .preset-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    padding: 0.3rem 0.7rem;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .preset-btn:hover {
+    border-color: var(--crimson);
+    color: #e08888;
+    background: rgba(139,26,26,0.1);
+  }
+
+  @keyframes pulse {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25%       { transform: translateX(-6px) rotate(-2deg); }
+    75%       { transform: translateX(6px) rotate(2deg); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <h1>🎲 Dice Roller</h1>
+  <p>May the dice gods smile upon you</p>
+  <div class="divider"><div class="divider-gem"></div></div>
+</div>
+
+<div class="dice-layout">
+
+  <!-- LEFT: Roller -->
+  <div>
+    <div class="card">
+      <div class="section-title">Choose Your Die</div>
+
+      <div class="dice-faces">
+        <button type="button" class="die-btn selected" data-sides="4">  <span class="die-symbol">🔺</span>d4</button>
+        <button type="button" class="die-btn"          data-sides="6">  <span class="die-symbol">⬡</span>d6</button>
+        <button type="button" class="die-btn"          data-sides="8">  <span class="die-symbol">🔷</span>d8</button>
+        <button type="button" class="die-btn"          data-sides="10"> <span class="die-symbol">🔹</span>d10</button>
+        <button type="button" class="die-btn"          data-sides="12"> <span class="die-symbol">🔶</span>d12</button>
+        <button type="button" class="die-btn"          data-sides="20"> <span class="die-symbol">🎲</span>d20</button>
+        <button type="button" class="die-btn"          data-sides="100"><span class="die-symbol">💯</span>d100</button>
+        <button type="button" class="die-btn"          data-sides="2">  <span class="die-symbol">🪙</span>d2</button>
+      </div>
+
+      <div class="count-row">
+        <label>Quantity:</label>
+        <button type="button" class="count-btn" id="btn-minus">−</button>
+        <span id="die-count-display">1</span>
+        <button type="button" class="count-btn" id="btn-plus">+</button>
+      </div>
+
+      <div class="roll-controls">
+        <div>
+          <label for="modifier">Modifier</label>
+          <input type="number" id="modifier" value="0" min="-20" max="20" style="text-align:center">
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button type="button" id="btn-roll" class="btn btn-primary" style="width:100%;justify-content:center;font-size:0.9rem;padding:0.6rem">
+            Roll!
+          </button>
+        </div>
+      </div>
+
+      <div class="result-display">
+        <div id="result-notation">—</div>
+        <div id="result-total">—</div>
+        <div id="result-breakdown"></div>
+        <div id="result-label"></div>
+      </div>
+
+      <div class="section-title" style="margin-top:1rem">Quick Roll</div>
+      <div class="presets">
+        <button type="button" class="preset-btn" data-preset="d20">d20</button>
+        <button type="button" class="preset-btn" data-preset="adv">Advantage</button>
+        <button type="button" class="preset-btn" data-preset="dis">Disadvantage</button>
+        <button type="button" class="preset-btn" data-preset="4d6">4d6 (stat)</button>
+        <button type="button" class="preset-btn" data-preset="d8">d8 hit die</button>
+        <button type="button" class="preset-btn" data-preset="2d6">2d6 dmg</button>
+        <button type="button" class="preset-btn" data-preset="d4">d4 dmg</button>
+        <button type="button" class="preset-btn" data-preset="pct">Percentile</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: History -->
+  <div>
+    <div class="card" style="height:100%;display:flex;flex-direction:column">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <div class="section-title" style="margin:0">Roll History</div>
+        <button type="button" id="btn-clear" class="btn btn-ghost" style="font-size:0.65rem;padding:0.3rem 0.75rem">Clear</button>
+      </div>
+      <div class="history-list" id="history-list">
+        <p class="history-empty">No rolls yet — the dice await...</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  var selectedSides = 4;
+  var dieCount = 1;
+  var rollHistory = [];
+
+  function rand(sides) {
+    return Math.floor(Math.random() * sides) + 1;
+  }
+
+  function toSigned(n) {
+    return n > 0 ? '+' + n : '' + n;
+  }
+
+  // ── Die selection ───────────────────────────────────────────────
+  var dieBtns = document.querySelectorAll('.die-btn');
+  dieBtns.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      dieBtns.forEach(function(b) { b.classList.remove('selected'); });
+      btn.classList.add('selected');
+      selectedSides = parseInt(btn.getAttribute('data-sides'), 10);
+    });
+  });
+
+  // ── Quantity ────────────────────────────────────────────────────
+  document.getElementById('btn-minus').addEventListener('click', function() {
+    if (dieCount > 1) {
+      dieCount--;
+      document.getElementById('die-count-display').textContent = dieCount;
+    }
+  });
+
+  document.getElementById('btn-plus').addEventListener('click', function() {
+    if (dieCount < 20) {
+      dieCount++;
+      document.getElementById('die-count-display').textContent = dieCount;
+    }
+  });
+
+  // ── Main roll ───────────────────────────────────────────────────
+  document.getElementById('btn-roll').addEventListener('click', function() {
+    var mod = parseInt(document.getElementById('modifier').value, 10) || 0;
+    doRoll(dieCount, selectedSides, mod, '');
+  });
+
+  // ── Presets ─────────────────────────────────────────────────────
+  document.querySelectorAll('.preset-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var p = btn.getAttribute('data-preset');
+      if (p === 'adv') {
+        var r1 = rand(20), r2 = rand(20), best = Math.max(r1, r2);
+        showResult('Advantage (2d20)', best, [r1, r2], '', 'Took ' + best, 'var(--gold)');
+        pushHistory('Advantage', [r1, r2], best, 'Took ' + best);
+      } else if (p === 'dis') {
+        var r1 = rand(20), r2 = rand(20), worst = Math.min(r1, r2);
+        showResult('Disadvantage (2d20)', worst, [r1, r2], '', 'Took ' + worst, '#e08888');
+        pushHistory('Disadvantage', [r1, r2], worst, 'Took ' + worst);
+      } else if (p === 'd20') { doRoll(1, 20, 0, '');
+      } else if (p === '4d6') { doRoll(4, 6, 0, '');
+      } else if (p === 'd8')  { doRoll(1, 8, 0, '');
+      } else if (p === '2d6') { doRoll(2, 6, 0, '');
+      } else if (p === 'd4')  { doRoll(1, 4, 0, '');
+      } else if (p === 'pct') { doRoll(1, 100, 0, '');
+      }
+    });
+  });
+
+  // ── Clear ───────────────────────────────────────────────────────
+  document.getElementById('btn-clear').addEventListener('click', function() {
+    rollHistory = [];
+    renderHistory();
+    document.getElementById('result-total').className = '';
+    document.getElementById('result-total').textContent = '—';
+    document.getElementById('result-notation').textContent = '—';
+    document.getElementById('result-breakdown').textContent = '';
+    document.getElementById('result-label').textContent = '';
+    document.getElementById('result-label').style.color = 'var(--text-dim)';
+  });
+
+  // ── Core roll logic ─────────────────────────────────────────────
+  function doRoll(count, sides, mod, label) {
+    var rolls = [];
+    for (var i = 0; i < count; i++) { rolls.push(rand(sides)); }
+    var rawSum = 0;
+    for (var j = 0; j < rolls.length; j++) { rawSum += rolls[j]; }
+    var total = rawSum + mod;
+    var modStr = mod !== 0 ? toSigned(mod) : '';
+    var notation = count + 'd' + sides + modStr;
+
+    var specialLabel = label || '';
+    var specialColor = 'var(--text-dim)';
+    var cssClass = '';
+
+    if (!label && count === 1 && sides === 20) {
+      if (rolls[0] === 20) { specialLabel = '✨ Natural 20!'; specialColor = '#50e880'; cssClass = 'nat20'; }
+      if (rolls[0] === 1)  { specialLabel = '💀 Critical Fail'; specialColor = '#e05050'; cssClass = 'nat1'; }
+    }
+
+    showResult(notation, total, rolls, cssClass, specialLabel, specialColor);
+    pushHistory(notation, rolls, total, specialLabel);
+  }
+
+  function showResult(notation, total, rolls, cssClass, specialLabel, specialColor) {
+    var el = document.getElementById('result-total');
+    el.className = cssClass;
+    el.textContent = total;
+    document.getElementById('result-notation').textContent  = notation;
+    document.getElementById('result-breakdown').textContent = rolls.length > 1 ? '[' + rolls.join(', ') + ']' : '';
+    document.getElementById('result-label').textContent     = specialLabel || '';
+    document.getElementById('result-label').style.color     = specialColor || 'var(--text-dim)';
+  }
+
+  function pushHistory(notation, rolls, total, specialLabel) {
+    rollHistory.unshift({ notation: notation, rolls: rolls, total: total, specialLabel: specialLabel || '' });
+    renderHistory();
+  }
+
+  function renderHistory() {
+    var list = document.getElementById('history-list');
+    if (rollHistory.length === 0) {
+      list.innerHTML = '<p class="history-empty">No rolls yet — the dice await...</p>';
+      return;
+    }
+    var html = '';
+    var shown = rollHistory.slice(0, 50);
+    for (var i = 0; i < shown.length; i++) {
+      var e = shown[i];
+      var is20 = e.rolls.length === 1 && e.rolls[0] === 20 && e.notation.indexOf('d20') !== -1;
+      var is1  = e.rolls.length === 1 && e.rolls[0] === 1  && e.notation.indexOf('d20') !== -1;
+      var tc   = is20 ? 'nat20' : is1 ? 'nat1' : '';
+      var bd   = e.rolls.length > 1 ? '[' + e.rolls.join(', ') + ']' : '';
+      html += '<div class="history-entry">'
+            + '<span class="h-notation">' + e.notation + '</span>'
+            + '<span class="h-rolls">'    + bd + (e.specialLabel ? ' ' + e.specialLabel : '') + '</span>'
+            + '<span class="h-total '     + tc + '">' + e.total + '</span>'
+            + '</div>';
+    }
+    list.innerHTML = html;
+  }
+
+})();
+</script>
+{% endblock %}

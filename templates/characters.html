@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}My Characters — The Tome{% endblock %}
+
+{% block extra_head %}
+<style>
+  .characters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1rem;
+  }
+
+  .char-card {
+    background: linear-gradient(160deg, #1e1708 0%, #120d04 100%);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 1.5rem;
+    display: flex; flex-direction: column;
+    gap: 0.75rem;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    animation: fadeIn 0.4s ease both;
+  }
+
+  .char-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 16px rgba(200,151,58,0.06);
+  }
+
+  .char-card::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--crimson), transparent);
+    opacity: 0.5;
+  }
+
+  .char-name {
+    font-family: 'Cinzel', serif;
+    font-size: 1.15rem;
+    color: var(--gold-light);
+    letter-spacing: 0.04em;
+  }
+
+  .char-meta {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    line-height: 1.4;
+  }
+
+  .char-meta strong {
+    font-style: normal;
+    color: var(--parchment);
+    font-weight: 600;
+  }
+
+  .char-stats {
+    display: flex; gap: 0.5rem; flex-wrap: wrap;
+  }
+
+  .stat-pip {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+    padding: 0.25rem 0.5rem;
+    border-radius: 2px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+
+  .stat-pip span { color: var(--gold); font-weight: 600; }
+
+  .char-actions {
+    display: flex; gap: 0.5rem; margin-top: auto;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .char-actions .btn { flex: 1; justify-content: center; font-size: 0.7rem; padding: 0.5rem; }
+
+  .empty-state {
+    text-align: center;
+    padding: 5rem 2rem;
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    color: var(--text-dim);
+  }
+
+  .empty-state .big-icon { font-size: 4rem; margin-bottom: 1rem; opacity: 0.4; }
+  .empty-state h3 {
+    font-family: 'Cinzel', serif;
+    font-style: normal;
+    color: var(--border);
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <h1>⚔️ My Characters</h1>
+  <p>Your party of adventurers</p>
+  <div class="divider"><div class="divider-gem"></div></div>
+</div>
+
+<div style="display:flex;justify-content:flex-end;margin-bottom:1rem">
+  <a href="{{ url_for('character_builder') }}" class="btn btn-primary">+ Create New Character</a>
+</div>
+
+{% if characters %}
+<div class="characters-grid">
+  {% for char in characters %}
+  <div class="char-card" style="animation-delay: {{ loop.index0 * 0.07 }}s">
+    <div class="char-name">{{ char.Name }}</div>
+    <div class="char-meta">
+      <strong>{{ char.Race }}</strong> · <strong>{{ char.Class }}</strong>
+      {% if char.Subclass %} · <em>{{ char.Subclass }}</em>{% endif %}
+      <br>Level {{ char.Level }} · {{ char.Background }}
+      {% if char.Alignment %} · {{ char.Alignment }}{% endif %}
+    </div>
+    <div class="char-stats">
+      <span class="stat-pip">STR <span>{{ char.Abilities.STR }}</span></span>
+      <span class="stat-pip">DEX <span>{{ char.Abilities.DEX }}</span></span>
+      <span class="stat-pip">CON <span>{{ char.Abilities.CON }}</span></span>
+      <span class="stat-pip">INT <span>{{ char.Abilities.INT }}</span></span>
+      <span class="stat-pip">WIS <span>{{ char.Abilities.WIS }}</span></span>
+      <span class="stat-pip">CHA <span>{{ char.Abilities.CHA }}</span></span>
+    </div>
+    <div class="char-stats">
+      <span class="stat-pip">HP <span>{{ char.MaxHP }}</span></span>
+      <span class="stat-pip">AC <span>{{ char.ArmorClass }}</span></span>
+      <span class="stat-pip">Speed <span>{{ char.Speed }}</span></span>
+    </div>
+    <div class="char-actions">
+      <a href="{{ url_for('character_detail', char_id=char._id) }}" class="btn btn-ghost">View</a>
+      <a href="{{ url_for('character_levelup', char_id=char._id) }}" class="btn btn-gold">Level Up</a>
+      <button class="btn btn-danger"
+        onclick="if(confirm('Delete {{ char.Name }}? This cannot be undone.')) deleteChar('{{ char._id }}')">
+        ✕
+      </button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="big-icon">📜</div>
+  <h3>No adventurers yet</h3>
+  <p>Your party is empty. Create a character to begin your journey.</p>
+  <a href="{{ url_for('character_builder') }}" class="btn btn-primary" style="margin-top:1.5rem">
+    Create Your First Character
+  </a>
+</div>
+{% endif %}
+
+<script>
+function deleteChar(id) {
+  fetch('/characters/' + id + '/delete', { method: 'POST' })
+    .then(r => r.json())
+    .then(d => { if (d.ok) location.reload(); else alert('Error deleting character.'); });
+}
+</script>
+{% endblock %}

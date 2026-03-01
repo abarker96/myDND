@@ -1,0 +1,54 @@
+services:
+
+  mongo:
+    image: mongo:6.0.1
+    restart: unless-stopped
+    # chown the data directory before handing off to the normal mongo entrypoint,
+    # since Docker named volumes are created as root and mongod runs as 'mongodb'
+    entrypoint: >
+      bash -c "
+        chown -R mongodb:mongodb /data/db2 &&
+        exec docker-entrypoint.sh mongod --config /etc/mongodb.conf
+      "
+    volumes:
+      - mongo_data:/data/db2
+      - ./docker/mongodb.conf:/etc/mongodb.conf:ro
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  seeder:
+    # One-shot container: seeds the DB then exits.
+    # Re-run manually with: docker compose run --rm seeder
+    build:
+      context: .
+      dockerfile: Dockerfile.seeder
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/5e-database
+    restart: "no"
+
+  flask:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/5e-database
+      FLASK_DEBUG: "false"
+      FLASK_SECRET_KEY: "some-long-random-string-here"
+    ports:
+      - "5000:5000"
+
+volumes:
+  mongo_data:

@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Level Up {{ char.Name }} — The Tome{% endblock %}
+
+{% block extra_head %}
+<style>
+  .levelup-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 1rem;
+  }
+
+  @media (max-width: 700px) {
+    .levelup-layout { grid-template-columns: 1fr; }
+  }
+
+  .diff-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(61,47,14,0.4);
+    font-family: 'Crimson Text', serif; font-size: 1rem;
+  }
+  .diff-row:last-child { border-bottom: none; }
+
+  .diff-label { color: var(--text-dim); }
+  .diff-vals { display: flex; align-items: center; gap: 0.75rem; }
+  .diff-old { color: var(--text-dim); text-decoration: line-through; font-size: 0.9rem; }
+  .diff-arrow { color: var(--border); font-size: 0.8rem; }
+  .diff-new { color: var(--gold-light); font-family: 'Cinzel', serif; font-size: 1rem; }
+  .diff-new.improved { color: #50e880; }
+
+  .new-features-list {
+    display: flex; flex-direction: column; gap: 0.5rem;
+  }
+
+  .feature-item {
+    background: rgba(200,151,58,0.05);
+    border: 1px solid rgba(200,151,58,0.2);
+    border-radius: 3px;
+    padding: 0.6rem 0.85rem;
+    font-family: 'Crimson Text', serif;
+    color: var(--parchment);
+    font-size: 0.95rem;
+  }
+
+  .feature-item .fi-level {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    color: var(--gold);
+    display: block;
+    margin-bottom: 0.15rem;
+    letter-spacing: 0.1em;
+  }
+
+  .hp-roll {
+    background: rgba(80,232,128,0.05);
+    border: 1px solid rgba(80,232,128,0.2);
+    border-radius: 4px;
+    padding: 1rem;
+    text-align: center;
+    margin: 1rem 0;
+  }
+
+  .hp-roll .roll-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    margin-bottom: 0.4rem;
+  }
+
+  .hp-roll .roll-val {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 2.5rem;
+    color: #50e880;
+    text-shadow: 0 0 20px rgba(80,232,128,0.4);
+    line-height: 1;
+  }
+
+  .hp-roll .roll-breakdown {
+    font-family: 'Crimson Text', serif;
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+  }
+
+  .confirm-actions {
+    display: flex; gap: 1rem; justify-content: center;
+    margin-top: 2rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <h1>⬆ Level Up</h1>
+  <p>{{ char.Name }} advances from level {{ char.Level }} to level {{ new_level }}</p>
+  <div class="divider"><div class="divider-gem"></div></div>
+</div>
+
+<div class="levelup-layout">
+
+  <!-- Left: Stat changes -->
+  <div>
+    <div class="card">
+      <div class="section-title">Stat Changes</div>
+
+      {% for row in changes %}
+      <div class="diff-row">
+        <span class="diff-label">{{ row.label }}</span>
+        <div class="diff-vals">
+          <span class="diff-old">{{ row.old }}</span>
+          <span class="diff-arrow">→</span>
+          <span class="diff-new {{ 'improved' if row.old != row.new else '' }}">{{ row.new }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="hp-roll" style="margin-top:1.25rem">
+      <div class="roll-label">HP Gained (average)</div>
+      <div class="roll-val">+{{ hp_gained }}</div>
+      <div class="roll-breakdown">
+        {{ char.HitDice }} average + CON modifier ({{ con_mod }})
+        = {{ hp_gained }} · New total: {{ new_max_hp }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: New features -->
+  <div>
+    <div class="card">
+      <div class="section-title">New Features at Level {{ new_level }}</div>
+      {% if new_features %}
+      <div class="new-features-list">
+        {% for f in new_features %}
+        <div class="feature-item">
+          <span class="fi-level">Level {{ new_level }}</span>
+          {{ f }}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p style="font-family:'Crimson Text',serif;font-style:italic;color:var(--text-dim)">
+        No new class features at this level.
+      </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="confirm-actions">
+  <a href="{{ url_for('character_detail', char_id=char._id) }}" class="btn btn-ghost">Cancel</a>
+  <form method="POST" action="{{ url_for('character_levelup', char_id=char._id) }}" style="display:inline">
+    <button type="submit" class="btn btn-gold" style="font-size:1rem;padding:0.75rem 2.5rem">
+      ✦ Confirm Level Up
+    </button>
+  </form>
+</div>
+{% endblock %}
